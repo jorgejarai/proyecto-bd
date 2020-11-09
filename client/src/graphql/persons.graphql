@@ -1,0 +1,10 @@
+query Persons {
+  persons {
+    id
+    name
+    rut
+    division
+    phone
+    email
+  }
+}

@@ -1,0 +1,28 @@
+query Documents {
+  documents {
+    document {
+      id
+      docType {
+        typeName
+      }
+      docNumber
+      subject
+      writtenOn
+      recordedBy {
+        id
+      }
+      sentOn
+    }
+    sender {
+      id
+      name
+    }
+    recipients {
+      person {
+        id
+        name
+      }
+      receivedOn
+    }
+  }
+}

@@ -1,0 +1,32 @@
+mutation AddDocument(
+  $docNumber: String
+  $subject: String!
+  $writtenOn: String
+  $docType: Int!
+  $sender: Int!
+  $sentOn: String
+) {
+  addDocument(
+    docNumber: $docNumber
+    subject: $subject
+    writtenOn: $writtenOn
+    docType: $docType
+    sender: $sender
+    sentOn: $sentOn
+  ) {
+    id
+    docNumber
+    subject
+    writtenOn
+    docType {
+      id
+    }
+    recordedBy {
+      id
+    }
+    sender {
+      id
+    }
+    sentOn
+  }
+}

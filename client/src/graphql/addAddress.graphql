@@ -1,0 +1,3 @@
+mutation AddAddress($address: String!, $postalCode: String, $country: Int!) {
+  addAddress(address: $address, postalCode: $postalCode, country: $country)
+}

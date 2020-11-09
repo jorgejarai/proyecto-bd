@@ -1,0 +1,24 @@
+mutation AddPerson(
+  $rut: String
+  $name: String!
+  $division: String
+  $address: Int
+  $email: String
+  $phone: Int
+) {
+  addPerson(
+    rut: $rut
+    name: $name
+    division: $division
+    address: $address
+    email: $email
+    phone: $phone
+  ) {
+    id
+    rut
+    name
+    division
+    phone
+    email
+  }
+}

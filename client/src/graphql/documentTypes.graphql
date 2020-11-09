@@ -1,0 +1,6 @@
+query DocumentTypes {
+  documentTypes {
+    id
+    typeName
+  }
+}
