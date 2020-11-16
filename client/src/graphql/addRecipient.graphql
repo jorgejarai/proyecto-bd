@@ -1,0 +1,7 @@
+mutation AddRecipient($document: Int!, $recipient: Int!, $receivedOn: String!) {
+  addRecipient(
+    document: $document
+    recipient: $recipient
+    receivedOn: $receivedOn
+  )
+}

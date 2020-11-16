@@ -1,5 +1,5 @@
-query Documents {
-  documents {
+query Document($id: Int!) {
+  document(id: $id) {
     document {
       id
       docType {

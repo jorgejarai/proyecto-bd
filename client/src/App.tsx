@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { setAccessToken } from "./accessToken";
 import { Routes } from "./Routes";
+import Loader from "react-loader-spinner";
 import "./App.scss";
 
 export const App: React.FC = () => {
@@ -19,7 +20,7 @@ export const App: React.FC = () => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <Loader type="Puff" color="#00bfff" height={100} width={100} />;
   }
 
   return <Routes />;

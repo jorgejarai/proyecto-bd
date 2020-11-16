@@ -11,6 +11,8 @@ import { isAuth } from '../isAuth';
 import { isClerk } from '../isClerk';
 import { getRepository } from 'typeorm';
 
+// TODO: Al asignar una dirección a una persona (por implementar), asegurarse de que esta no esté residiendo en una dirección ya existente para el intervalo de fechas dado (incluyendo su dirección actual si la dirección nueva tiene end_date como null)
+
 @Resolver()
 export class AddressResolver {
   @Query(() => Address, { nullable: true })

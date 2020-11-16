@@ -1,0 +1,9 @@
+query Countries {
+  countries {
+    countryNumber
+    name
+    isoName
+    alpha2
+    alpha3
+  }
+}

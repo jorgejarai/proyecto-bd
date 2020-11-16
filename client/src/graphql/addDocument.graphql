@@ -5,6 +5,7 @@ mutation AddDocument(
   $docType: Int!
   $sender: Int!
   $sentOn: String
+  $recipients: [RecipientInput!]!
 ) {
   addDocument(
     docNumber: $docNumber
@@ -13,20 +14,41 @@ mutation AddDocument(
     docType: $docType
     sender: $sender
     sentOn: $sentOn
+    recipients: $recipients
   ) {
-    id
-    docNumber
-    subject
-    writtenOn
-    docType {
+    document {
       id
-    }
-    recordedBy {
-      id
+      docNumber
+      subject
+      writtenOn
+      docType {
+        id
+        typeName
+      }
+      recordedBy {
+        id
+        name
+      }
     }
     sender {
       id
+      rut
+      name
+      division
+      phone
+      email
     }
     sentOn
+    recipients {
+      person {
+        id
+        rut
+        name
+        division
+        phone
+        email
+      }
+      receivedOn
+    }
   }
 }

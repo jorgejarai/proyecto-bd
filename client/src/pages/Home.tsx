@@ -1,21 +1,22 @@
-import React from 'react';
-import { Container, Table } from 'react-bootstrap';
-import { useUsersQuery } from '../generated/graphql';
-import { Redirect } from 'react-router-dom';
+import React from "react";
+import { Container, Table } from "react-bootstrap";
+import { useUsersQuery } from "../generated/graphql";
+import { Redirect } from "react-router-dom";
+import Loader from "react-loader-spinner";
 
 interface Props {}
 
 export const Home: React.FC<Props> = () => {
   const { data, loading, error } = useUsersQuery({
-    fetchPolicy: 'network-only',
+    fetchPolicy: "network-only",
   });
 
   if (loading) {
-    return <div>loading...</div>;
+    return <Loader type="Puff" color="#00bfff" height={100} width={100} />;
   }
 
-  if (error && error.message === 'Not authenticated') {
-    return <Redirect to='/login' />;
+  if (error && error.message === "Not authenticated") {
+    return <Redirect to="/login" />;
   }
 
   if (error) {
@@ -28,13 +29,15 @@ export const Home: React.FC<Props> = () => {
   }
 
   return (
-    <Container className='mt-3'>
+    <Container className="mt-3">
       <h2>Users</h2>
-      <Table striped bordered hover size='sm' className='mt-3'>
+      <Table striped bordered hover size="sm" className="mt-3">
         <thead>
-          <th>No.</th>
-          <th>Name</th>
-          <th>Email</th>
+          <tr>
+            <th>No.</th>
+            <th>Name</th>
+            <th>Email</th>
+          </tr>
         </thead>
         <tbody>
           {data.users.map(({ id, name, email }) => (

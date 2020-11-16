@@ -19,13 +19,17 @@ export type Query = {
   bye: Scalars['String'];
   users: Array<User>;
   me?: Maybe<User>;
-  persons: Array<Person>;
-  person?: Maybe<Person>;
+  persons: Array<PersonResponse>;
+  person?: Maybe<PersonResponse>;
   personAddress?: Maybe<Address>;
+  personsAddresses: Array<PersonResponse>;
   documents: Array<DocumentResponse>;
   document?: Maybe<DocumentResponse>;
   documentTypes: Array<DocumentType>;
+  getRecipients?: Maybe<Array<RecipientResponse>>;
   address?: Maybe<Address>;
+  countries: Array<Country>;
+  country?: Maybe<Country>;
 };
 
 
@@ -40,13 +44,29 @@ export type QueryPersonAddressArgs = {
 };
 
 
+export type QueryPersonsAddressesArgs = {
+  date?: Maybe<Scalars['DateTime']>;
+  ids: Array<Scalars['Int']>;
+};
+
+
 export type QueryDocumentArgs = {
-  id: Scalars['Float'];
+  id: Scalars['Int'];
+};
+
+
+export type QueryGetRecipientsArgs = {
+  id: Scalars['Int'];
 };
 
 
 export type QueryAddressArgs = {
   id: Scalars['Int'];
+};
+
+
+export type QueryCountryArgs = {
+  countryNumber: Scalars['Int'];
 };
 
 export type User = {
@@ -59,8 +79,15 @@ export type User = {
   isClerk: Scalars['Boolean'];
 };
 
-export type Person = {
-  __typename?: 'Person';
+export type PersonResponse = {
+  __typename?: 'PersonResponse';
+  person?: Maybe<PersonOutput>;
+  status: Scalars['String'];
+  address?: Maybe<Address>;
+};
+
+export type PersonOutput = {
+  __typename?: 'PersonOutput';
   id: Scalars['Int'];
   rut?: Maybe<Scalars['String']>;
   name: Scalars['String'];
@@ -89,22 +116,21 @@ export type Country = {
 
 export type DocumentResponse = {
   __typename?: 'DocumentResponse';
-  document: Document;
-  sender: Person;
-  recipients: Array<Recipient>;
+  document: DocumentOutput;
+  sender: PersonOutput;
+  sentOn?: Maybe<Scalars['DateTime']>;
+  recipients: Array<RecipientResponse>;
   files: Array<File>;
 };
 
-export type Document = {
-  __typename?: 'Document';
+export type DocumentOutput = {
+  __typename?: 'DocumentOutput';
   id: Scalars['Int'];
   docNumber?: Maybe<Scalars['String']>;
   subject: Scalars['String'];
   writtenOn?: Maybe<Scalars['DateTime']>;
   docType: DocumentType;
   recordedBy: User;
-  sender: Person;
-  sentOn?: Maybe<Scalars['DateTime']>;
 };
 
 export type DocumentType = {
@@ -113,10 +139,10 @@ export type DocumentType = {
   typeName: Scalars['String'];
 };
 
-export type Recipient = {
-  __typename?: 'Recipient';
-  person: Person;
-  receivedOn: Scalars['String'];
+export type RecipientResponse = {
+  __typename?: 'RecipientResponse';
+  person: PersonOutput;
+  receivedOn: Scalars['DateTime'];
 };
 
 export type File = {
@@ -134,8 +160,9 @@ export type Mutation = {
   logout: Scalars['Boolean'];
   login: LoginResponse;
   register: RegisterResponse;
-  addPerson?: Maybe<Person>;
-  addDocument?: Maybe<Document>;
+  addPerson?: Maybe<PersonResponse>;
+  addDocument?: Maybe<DocumentResponse>;
+  addRecipient: Scalars['Boolean'];
   addAddress?: Maybe<Scalars['Int']>;
 };
 
@@ -164,17 +191,25 @@ export type MutationAddPersonArgs = {
   address?: Maybe<Scalars['Int']>;
   division?: Maybe<Scalars['String']>;
   name: Scalars['String'];
-  rut?: Maybe<Scalars['String']>;
+  rut?: Maybe<Scalars['Int']>;
 };
 
 
 export type MutationAddDocumentArgs = {
+  recipients: Array<RecipientInput>;
   sentOn?: Maybe<Scalars['String']>;
   sender: Scalars['Int'];
   docType: Scalars['Int'];
   writtenOn?: Maybe<Scalars['String']>;
   subject: Scalars['String'];
   docNumber?: Maybe<Scalars['String']>;
+};
+
+
+export type MutationAddRecipientArgs = {
+  receivedOn: Scalars['String'];
+  recipient: Scalars['Int'];
+  document: Scalars['Int'];
 };
 
 
@@ -198,6 +233,11 @@ export type RegisterResponse = {
   message?: Maybe<Scalars['String']>;
 };
 
+export type RecipientInput = {
+  person: Scalars['Int'];
+  receivedOn: Scalars['DateTime'];
+};
+
 export type AddAddressMutationVariables = Exact<{
   address: Scalars['String'];
   postalCode?: Maybe<Scalars['String']>;
@@ -217,29 +257,41 @@ export type AddDocumentMutationVariables = Exact<{
   docType: Scalars['Int'];
   sender: Scalars['Int'];
   sentOn?: Maybe<Scalars['String']>;
+  recipients: Array<RecipientInput>;
 }>;
 
 
 export type AddDocumentMutation = (
   { __typename?: 'Mutation' }
   & { addDocument?: Maybe<(
-    { __typename?: 'Document' }
-    & Pick<Document, 'id' | 'docNumber' | 'subject' | 'writtenOn' | 'sentOn'>
-    & { docType: (
-      { __typename?: 'DocumentType' }
-      & Pick<DocumentType, 'id'>
-    ), recordedBy: (
-      { __typename?: 'User' }
-      & Pick<User, 'id'>
+    { __typename?: 'DocumentResponse' }
+    & Pick<DocumentResponse, 'sentOn'>
+    & { document: (
+      { __typename?: 'DocumentOutput' }
+      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
+      & { docType: (
+        { __typename?: 'DocumentType' }
+        & Pick<DocumentType, 'id' | 'typeName'>
+      ), recordedBy: (
+        { __typename?: 'User' }
+        & Pick<User, 'id' | 'name'>
+      ) }
     ), sender: (
-      { __typename?: 'Person' }
-      & Pick<Person, 'id'>
-    ) }
+      { __typename?: 'PersonOutput' }
+      & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
+    ), recipients: Array<(
+      { __typename?: 'RecipientResponse' }
+      & Pick<RecipientResponse, 'receivedOn'>
+      & { person: (
+        { __typename?: 'PersonOutput' }
+        & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
+      ) }
+    )> }
   )> }
 );
 
 export type AddPersonMutationVariables = Exact<{
-  rut?: Maybe<Scalars['String']>;
+  rut?: Maybe<Scalars['Int']>;
   name: Scalars['String'];
   division?: Maybe<Scalars['String']>;
   address?: Maybe<Scalars['Int']>;
@@ -251,8 +303,76 @@ export type AddPersonMutationVariables = Exact<{
 export type AddPersonMutation = (
   { __typename?: 'Mutation' }
   & { addPerson?: Maybe<(
-    { __typename?: 'Person' }
-    & Pick<Person, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
+    { __typename?: 'PersonResponse' }
+    & Pick<PersonResponse, 'status'>
+    & { person?: Maybe<(
+      { __typename?: 'PersonOutput' }
+      & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
+    )>, address?: Maybe<(
+      { __typename?: 'Address' }
+      & Pick<Address, 'id' | 'address' | 'postalCode'>
+      & { country: (
+        { __typename?: 'Country' }
+        & Pick<Country, 'name'>
+      ) }
+    )> }
+  )> }
+);
+
+export type AddRecipientMutationVariables = Exact<{
+  document: Scalars['Int'];
+  recipient: Scalars['Int'];
+  receivedOn: Scalars['String'];
+}>;
+
+
+export type AddRecipientMutation = (
+  { __typename?: 'Mutation' }
+  & Pick<Mutation, 'addRecipient'>
+);
+
+export type CountriesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type CountriesQuery = (
+  { __typename?: 'Query' }
+  & { countries: Array<(
+    { __typename?: 'Country' }
+    & Pick<Country, 'countryNumber' | 'name' | 'isoName' | 'alpha2' | 'alpha3'>
+  )> }
+);
+
+export type DocumentQueryVariables = Exact<{
+  id: Scalars['Int'];
+}>;
+
+
+export type DocumentQuery = (
+  { __typename?: 'Query' }
+  & { document?: Maybe<(
+    { __typename?: 'DocumentResponse' }
+    & Pick<DocumentResponse, 'sentOn'>
+    & { document: (
+      { __typename?: 'DocumentOutput' }
+      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
+      & { docType: (
+        { __typename?: 'DocumentType' }
+        & Pick<DocumentType, 'id' | 'typeName'>
+      ), recordedBy: (
+        { __typename?: 'User' }
+        & Pick<User, 'id' | 'username' | 'name' | 'email' | 'isClerk'>
+      ) }
+    ), sender: (
+      { __typename?: 'PersonOutput' }
+      & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
+    ), recipients: Array<(
+      { __typename?: 'RecipientResponse' }
+      & Pick<RecipientResponse, 'receivedOn'>
+      & { person: (
+        { __typename?: 'PersonOutput' }
+        & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
+      ) }
+    )> }
   )> }
 );
 
@@ -274,25 +394,26 @@ export type DocumentsQuery = (
   { __typename?: 'Query' }
   & { documents: Array<(
     { __typename?: 'DocumentResponse' }
+    & Pick<DocumentResponse, 'sentOn'>
     & { document: (
-      { __typename?: 'Document' }
-      & Pick<Document, 'id' | 'docNumber' | 'subject' | 'writtenOn' | 'sentOn'>
+      { __typename?: 'DocumentOutput' }
+      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
       & { docType: (
         { __typename?: 'DocumentType' }
-        & Pick<DocumentType, 'typeName'>
+        & Pick<DocumentType, 'id' | 'typeName'>
       ), recordedBy: (
         { __typename?: 'User' }
-        & Pick<User, 'id'>
+        & Pick<User, 'id' | 'username' | 'name' | 'email' | 'isClerk'>
       ) }
     ), sender: (
-      { __typename?: 'Person' }
-      & Pick<Person, 'id' | 'name'>
+      { __typename?: 'PersonOutput' }
+      & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
     ), recipients: Array<(
-      { __typename?: 'Recipient' }
-      & Pick<Recipient, 'receivedOn'>
+      { __typename?: 'RecipientResponse' }
+      & Pick<RecipientResponse, 'receivedOn'>
       & { person: (
-        { __typename?: 'Person' }
-        & Pick<Person, 'id' | 'name'>
+        { __typename?: 'PersonOutput' }
+        & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
       ) }
     )> }
   )> }
@@ -349,8 +470,18 @@ export type PersonsQueryVariables = Exact<{ [key: string]: never; }>;
 export type PersonsQuery = (
   { __typename?: 'Query' }
   & { persons: Array<(
-    { __typename?: 'Person' }
-    & Pick<Person, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
+    { __typename?: 'PersonResponse' }
+    & { person?: Maybe<(
+      { __typename?: 'PersonOutput' }
+      & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
+    )>, address?: Maybe<(
+      { __typename?: 'Address' }
+      & Pick<Address, 'address' | 'postalCode'>
+      & { country: (
+        { __typename?: 'Country' }
+        & Pick<Country, 'name'>
+      ) }
+    )> }
   )> }
 );
 
@@ -414,7 +545,7 @@ export type AddAddressMutationHookResult = ReturnType<typeof useAddAddressMutati
 export type AddAddressMutationResult = Apollo.MutationResult<AddAddressMutation>;
 export type AddAddressMutationOptions = Apollo.BaseMutationOptions<AddAddressMutation, AddAddressMutationVariables>;
 export const AddDocumentDocument = gql`
-    mutation AddDocument($docNumber: String, $subject: String!, $writtenOn: String, $docType: Int!, $sender: Int!, $sentOn: String) {
+    mutation AddDocument($docNumber: String, $subject: String!, $writtenOn: String, $docType: Int!, $sender: Int!, $sentOn: String, $recipients: [RecipientInput!]!) {
   addDocument(
     docNumber: $docNumber
     subject: $subject
@@ -422,21 +553,42 @@ export const AddDocumentDocument = gql`
     docType: $docType
     sender: $sender
     sentOn: $sentOn
+    recipients: $recipients
   ) {
-    id
-    docNumber
-    subject
-    writtenOn
-    docType {
+    document {
       id
-    }
-    recordedBy {
-      id
+      docNumber
+      subject
+      writtenOn
+      docType {
+        id
+        typeName
+      }
+      recordedBy {
+        id
+        name
+      }
     }
     sender {
       id
+      rut
+      name
+      division
+      phone
+      email
     }
     sentOn
+    recipients {
+      person {
+        id
+        rut
+        name
+        division
+        phone
+        email
+      }
+      receivedOn
+    }
   }
 }
     `;
@@ -461,6 +613,7 @@ export type AddDocumentMutationFn = Apollo.MutationFunction<AddDocumentMutation,
  *      docType: // value for 'docType'
  *      sender: // value for 'sender'
  *      sentOn: // value for 'sentOn'
+ *      recipients: // value for 'recipients'
  *   },
  * });
  */
@@ -471,7 +624,7 @@ export type AddDocumentMutationHookResult = ReturnType<typeof useAddDocumentMuta
 export type AddDocumentMutationResult = Apollo.MutationResult<AddDocumentMutation>;
 export type AddDocumentMutationOptions = Apollo.BaseMutationOptions<AddDocumentMutation, AddDocumentMutationVariables>;
 export const AddPersonDocument = gql`
-    mutation AddPerson($rut: String, $name: String!, $division: String, $address: Int, $email: String, $phone: Int) {
+    mutation AddPerson($rut: Int, $name: String!, $division: String, $address: Int, $email: String, $phone: Int) {
   addPerson(
     rut: $rut
     name: $name
@@ -480,12 +633,23 @@ export const AddPersonDocument = gql`
     email: $email
     phone: $phone
   ) {
-    id
-    rut
-    name
-    division
-    phone
-    email
+    status
+    person {
+      id
+      rut
+      name
+      division
+      phone
+      email
+    }
+    address {
+      id
+      address
+      postalCode
+      country {
+        name
+      }
+    }
   }
 }
     `;
@@ -519,6 +683,147 @@ export function useAddPersonMutation(baseOptions?: Apollo.MutationHookOptions<Ad
 export type AddPersonMutationHookResult = ReturnType<typeof useAddPersonMutation>;
 export type AddPersonMutationResult = Apollo.MutationResult<AddPersonMutation>;
 export type AddPersonMutationOptions = Apollo.BaseMutationOptions<AddPersonMutation, AddPersonMutationVariables>;
+export const AddRecipientDocument = gql`
+    mutation AddRecipient($document: Int!, $recipient: Int!, $receivedOn: String!) {
+  addRecipient(
+    document: $document
+    recipient: $recipient
+    receivedOn: $receivedOn
+  )
+}
+    `;
+export type AddRecipientMutationFn = Apollo.MutationFunction<AddRecipientMutation, AddRecipientMutationVariables>;
+
+/**
+ * __useAddRecipientMutation__
+ *
+ * To run a mutation, you first call `useAddRecipientMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useAddRecipientMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [addRecipientMutation, { data, loading, error }] = useAddRecipientMutation({
+ *   variables: {
+ *      document: // value for 'document'
+ *      recipient: // value for 'recipient'
+ *      receivedOn: // value for 'receivedOn'
+ *   },
+ * });
+ */
+export function useAddRecipientMutation(baseOptions?: Apollo.MutationHookOptions<AddRecipientMutation, AddRecipientMutationVariables>) {
+        return Apollo.useMutation<AddRecipientMutation, AddRecipientMutationVariables>(AddRecipientDocument, baseOptions);
+      }
+export type AddRecipientMutationHookResult = ReturnType<typeof useAddRecipientMutation>;
+export type AddRecipientMutationResult = Apollo.MutationResult<AddRecipientMutation>;
+export type AddRecipientMutationOptions = Apollo.BaseMutationOptions<AddRecipientMutation, AddRecipientMutationVariables>;
+export const CountriesDocument = gql`
+    query Countries {
+  countries {
+    countryNumber
+    name
+    isoName
+    alpha2
+    alpha3
+  }
+}
+    `;
+
+/**
+ * __useCountriesQuery__
+ *
+ * To run a query within a React component, call `useCountriesQuery` and pass it any options that fit your needs.
+ * When your component renders, `useCountriesQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useCountriesQuery({
+ *   variables: {
+ *   },
+ * });
+ */
+export function useCountriesQuery(baseOptions?: Apollo.QueryHookOptions<CountriesQuery, CountriesQueryVariables>) {
+        return Apollo.useQuery<CountriesQuery, CountriesQueryVariables>(CountriesDocument, baseOptions);
+      }
+export function useCountriesLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<CountriesQuery, CountriesQueryVariables>) {
+          return Apollo.useLazyQuery<CountriesQuery, CountriesQueryVariables>(CountriesDocument, baseOptions);
+        }
+export type CountriesQueryHookResult = ReturnType<typeof useCountriesQuery>;
+export type CountriesLazyQueryHookResult = ReturnType<typeof useCountriesLazyQuery>;
+export type CountriesQueryResult = Apollo.QueryResult<CountriesQuery, CountriesQueryVariables>;
+export const DocumentDocument = gql`
+    query Document($id: Int!) {
+  document(id: $id) {
+    document {
+      id
+      docType {
+        id
+        typeName
+      }
+      docNumber
+      subject
+      writtenOn
+      recordedBy {
+        id
+        username
+        name
+        email
+        isClerk
+      }
+    }
+    sender {
+      id
+      name
+      rut
+      division
+      phone
+      email
+    }
+    sentOn
+    recipients {
+      person {
+        id
+        name
+        rut
+        division
+        phone
+        email
+      }
+      receivedOn
+    }
+  }
+}
+    `;
+
+/**
+ * __useDocumentQuery__
+ *
+ * To run a query within a React component, call `useDocumentQuery` and pass it any options that fit your needs.
+ * When your component renders, `useDocumentQuery` returns an object from Apollo Client that contains loading, error, and data properties
+ * you can use to render your UI.
+ *
+ * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
+ *
+ * @example
+ * const { data, loading, error } = useDocumentQuery({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDocumentQuery(baseOptions?: Apollo.QueryHookOptions<DocumentQuery, DocumentQueryVariables>) {
+        return Apollo.useQuery<DocumentQuery, DocumentQueryVariables>(DocumentDocument, baseOptions);
+      }
+export function useDocumentLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<DocumentQuery, DocumentQueryVariables>) {
+          return Apollo.useLazyQuery<DocumentQuery, DocumentQueryVariables>(DocumentDocument, baseOptions);
+        }
+export type DocumentQueryHookResult = ReturnType<typeof useDocumentQuery>;
+export type DocumentLazyQueryHookResult = ReturnType<typeof useDocumentLazyQuery>;
+export type DocumentQueryResult = Apollo.QueryResult<DocumentQuery, DocumentQueryVariables>;
 export const DocumentTypesDocument = gql`
     query DocumentTypes {
   documentTypes {
@@ -558,6 +863,7 @@ export const DocumentsDocument = gql`
     document {
       id
       docType {
+        id
         typeName
       }
       docNumber
@@ -565,17 +871,29 @@ export const DocumentsDocument = gql`
       writtenOn
       recordedBy {
         id
+        username
+        name
+        email
+        isClerk
       }
-      sentOn
     }
     sender {
       id
       name
+      rut
+      division
+      phone
+      email
     }
+    sentOn
     recipients {
       person {
         id
         name
+        rut
+        division
+        phone
+        email
       }
       receivedOn
     }
@@ -749,12 +1067,21 @@ export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
 export const PersonsDocument = gql`
     query Persons {
   persons {
-    id
-    name
-    rut
-    division
-    phone
-    email
+    person {
+      id
+      name
+      rut
+      division
+      phone
+      email
+    }
+    address {
+      address
+      postalCode
+      country {
+        name
+      }
+    }
   }
 }
     `;

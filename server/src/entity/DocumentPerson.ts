@@ -23,6 +23,7 @@ export class DocumentPerson extends BaseEntity {
 
   @ManyToOne(() => Person, {
     eager: true,
+    nullable: false,
   })
   @JoinColumn({ name: 'recipient' })
   recipient: Person;

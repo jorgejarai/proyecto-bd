@@ -1,5 +1,5 @@
 mutation AddPerson(
-  $rut: String
+  $rut: Int
   $name: String!
   $division: String
   $address: Int
@@ -14,11 +14,22 @@ mutation AddPerson(
     email: $email
     phone: $phone
   ) {
-    id
-    rut
-    name
-    division
-    phone
-    email
+    status
+    person {
+      id
+      rut
+      name
+      division
+      phone
+      email
+    }
+    address {
+      id
+      address
+      postalCode
+      country {
+        name
+      }
+    }
   }
 }
