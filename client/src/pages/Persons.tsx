@@ -1,36 +1,37 @@
-import React, { useState } from "react";
-import { useCountriesQuery, usePersonsQuery } from "../generated/graphql";
-import { Redirect } from "react-router-dom";
-import { Container, Form, Table, Col, Row, Button } from "react-bootstrap";
-import { PersonPlusFill } from "react-bootstrap-icons";
-import Loader from "react-loader-spinner";
-import { NewPerson } from "../components/NewPerson";
+import React, { useState } from 'react';
+import { useCountriesQuery, usePersonsQuery } from '../generated/graphql';
+import { Redirect } from 'react-router-dom';
+import { Container, Form, Table, Col, Row, Button } from 'react-bootstrap';
+import { PersonPlusFill } from 'react-bootstrap-icons';
+import { NewPerson } from '../components/NewPerson';
+import { Loading } from '../components/Loading';
+import { PersonInfo } from '../components/PersonInfo';
 
 type SearchCriterion = {
-  criterion: "rut" | "name" | "division" | "email" | "phone";
+  criterion: 'rut' | 'name' | 'division' | 'email' | 'phone';
   displayName: string;
 };
 
 const searchCriteria: SearchCriterion[] = [
   {
-    criterion: "rut",
-    displayName: "RUT",
+    criterion: 'rut',
+    displayName: 'RUT',
   },
   {
-    criterion: "name",
-    displayName: "Name",
+    criterion: 'name',
+    displayName: 'Name',
   },
   {
-    criterion: "division",
-    displayName: "Division",
+    criterion: 'division',
+    displayName: 'Division',
   },
   {
-    criterion: "email",
-    displayName: "Email",
+    criterion: 'email',
+    displayName: 'Email',
   },
   {
-    criterion: "phone",
-    displayName: "Phone",
+    criterion: 'phone',
+    displayName: 'Phone',
   },
 ];
 
@@ -48,19 +49,20 @@ export const Persons: React.FC = () => {
   const [searchCriterion, setSearchCriterion] = useState<SearchCriterion>(
     searchCriteria[0]
   );
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
   const [showNewDialog, setShowNewDialog] = useState(false);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
+
+  const [currPerson, setCurrPerson] = useState(0);
 
   if (perLoading || counLoading) {
-    return <Loader type="Puff" color="#00bfff" height={100} width={100} />;
+    return <Loading />;
   }
 
   if (perError || counError) {
-    console.log(perError);
+    console.error(perError);
     return <div>Error</div>;
   }
-
-  console.log(counData);
 
   if (!perData || !perData.persons || !counData || !counData.countries) {
     return <Redirect to="/login" />;
@@ -72,7 +74,7 @@ export const Persons: React.FC = () => {
         <Row>
           <Col className="d-flex">
             <div>
-              <h2 style={{ display: "table-cell" }}>Persons</h2>
+              <h2 style={{ display: 'table-cell' }}>Persons</h2>
             </div>
             <Button className="ml-auto" onClick={() => setShowNewDialog(true)}>
               <PersonPlusFill size={24} />
@@ -90,7 +92,7 @@ export const Persons: React.FC = () => {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </Col>
-              <Col xs="auto">
+              <Col xs={3}>
                 <Form.Control
                   as="select"
                   value={searchCriterion.criterion}
@@ -110,9 +112,6 @@ export const Persons: React.FC = () => {
                     </option>
                   ))}
                 </Form.Control>
-              </Col>
-              <Col xs="auto">
-                <Button>Advanced</Button>
               </Col>
             </Form.Row>
           </Form.Group>
@@ -138,7 +137,6 @@ export const Persons: React.FC = () => {
                 const searchAttribute = person.person[
                   searchCriterion.criterion
                 ]?.toLocaleString();
-                console.log(searchAttribute);
 
                 if (
                   searchAttribute &&
@@ -150,7 +148,13 @@ export const Persons: React.FC = () => {
               }
 
               return (
-                <tr key={id}>
+                <tr
+                  key={id}
+                  onDoubleClick={() => {
+                    setCurrPerson(id);
+                    setShowInfoDialog(true);
+                  }}
+                >
                   <td>{rut}</td>
                   <td>{division ? `${name} - ${division}` : `${name}`}</td>
                   <td>{`${address}, ${country.name}`}</td>
@@ -166,6 +170,11 @@ export const Persons: React.FC = () => {
         show={showNewDialog}
         setShow={setShowNewDialog}
         countryData={counData}
+      />
+      <PersonInfo
+        show={showInfoDialog}
+        setShow={setShowInfoDialog}
+        perId={currPerson}
       />
     </>
   );

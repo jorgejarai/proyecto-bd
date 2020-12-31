@@ -1,17 +1,5 @@
 import * as yup from 'yup';
 
-export const userRegistrationSchema = yup.object({
-  email: yup.string().email().max(254).required(),
-  name: yup.string().min(5).max(64).required(),
-  password: yup.string().min(3).max(64).required(),
-});
-
-export const userLoginSchema = yup.object({
-  email: yup.string().email().max(254).required(),
-  name: yup.string().min(5).max(64).required(),
-  password: yup.string().min(3).max(64).required(),
-});
-
 export const personSchema = yup.object({
   name: yup
     .string()
@@ -52,7 +40,11 @@ export const documentSchema = yup.object({
   writtenOn: yup
     .date()
     .max(new Date().toISOString(), 'Cannot write a message in the future'),
-  sender: yup.number().integer().required('Must provide a sender'),
+  sender: yup
+    .number()
+    .integer('Must provide a sender')
+    .required('Must provide a sender')
+    .min(0, 'Must provide a sender'),
   sentOn: yup.date().max(new Date(), 'Cannot send a message in the future'),
   recipients: yup.array().of(
     yup.object({

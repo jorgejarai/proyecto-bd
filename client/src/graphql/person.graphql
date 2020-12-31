@@ -1,5 +1,5 @@
-query Persons {
-  persons {
+query Person($id: Int!) {
+  person(id: $id) {
     person {
       id
       name

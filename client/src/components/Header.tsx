@@ -1,14 +1,14 @@
-import React from "react";
-import { Navbar, Nav, Button } from "react-bootstrap";
-import { LinkContainer } from "react-router-bootstrap";
-import { Link, useHistory } from "react-router-dom";
+import React from 'react';
+import { Navbar, Nav, Button } from 'react-bootstrap';
+import { LinkContainer } from 'react-router-bootstrap';
+import { Link, useHistory } from 'react-router-dom';
 import {
   useMeQuery,
   useLogoutMutation,
   MeQuery,
   MeDocument,
-} from "../generated/graphql";
-import { setAccessToken } from "../accessToken";
+} from '../generated/graphql';
+import { setAccessToken } from '../accessToken';
 
 export const Header: React.FC = () => {
   const { data, loading } = useMeQuery();
@@ -16,7 +16,7 @@ export const Header: React.FC = () => {
   const history = useHistory();
 
   const loggedIn = !loading && data && data.me;
-  const name = loggedIn ? data!.me!.name : "";
+  const name = loggedIn ? data!.me!.name : '';
 
   return (
     <Navbar bg="light" expand="lg">
@@ -62,8 +62,8 @@ export const Header: React.FC = () => {
                   } catch {
                   } finally {
                     await client!.clearStore();
-                    setAccessToken("");
-                    history.push("/login");
+                    setAccessToken('');
+                    history.push('/login');
                   }
                 }}
               >

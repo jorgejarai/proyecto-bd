@@ -1,3 +1,16 @@
 mutation AddAddress($address: String!, $postalCode: String, $country: Int!) {
-  addAddress(address: $address, postalCode: $postalCode, country: $country)
+  addAddress(address: $address, postalCode: $postalCode, country: $country) {
+    status {
+      status
+      message
+    }
+    address {
+      id
+      address
+      postalCode
+      country {
+        countryNumber
+      }
+    }
+  }
 }

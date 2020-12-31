@@ -1,14 +1,14 @@
-import React from "react";
-import { useMeQuery } from "../generated/graphql";
-import { Redirect } from "react-router-dom";
-import { Container } from "react-bootstrap";
-import Loader from "react-loader-spinner";
+import React from 'react';
+import { useMeQuery } from '../generated/graphql';
+import { Redirect } from 'react-router-dom';
+import { Container } from 'react-bootstrap';
+import { Loading } from '../components/Loading';
 
 export const Me: React.FC = () => {
   const { data, loading, error } = useMeQuery();
 
   if (loading) {
-    return <Loader type="Puff" color="#00bfff" height={100} width={100} />;
+    return <Loading />;
   }
 
   if (error) {

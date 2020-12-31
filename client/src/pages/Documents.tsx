@@ -1,24 +1,32 @@
-import React, { Dispatch, SetStateAction, useState } from "react";
+import React, { Dispatch, SetStateAction, useState } from 'react';
 import {
   useDocumentsQuery,
   useDocumentTypesQuery,
   usePersonsQuery,
-} from "../generated/graphql";
-import { Redirect } from "react-router-dom";
-import { Container, Form, Table, Col, Button, Row } from "react-bootstrap";
-import { Sliders, FileEarmarkPlusFill } from "react-bootstrap-icons";
-import "react-datepicker/dist/react-datepicker.css";
-import "react-bootstrap-typeahead/css/Typeahead.css";
-import Loader from "react-loader-spinner";
-import { NewDocument } from "../components/NewDocument";
-import { PersonSettings } from "../components/PersonSettings";
-import { DocumentInfo } from "../components/DocumentInfo";
+} from '../generated/graphql';
+import { Redirect } from 'react-router-dom';
+import {
+  Alert,
+  Container,
+  Form,
+  Table,
+  Col,
+  Button,
+  Row,
+} from 'react-bootstrap';
+import { Sliders, FileEarmarkPlusFill } from 'react-bootstrap-icons';
+import 'react-datepicker/dist/react-datepicker.css';
+import 'react-bootstrap-typeahead/css/Typeahead.css';
+import { Loading } from '../components/Loading';
+import { NewDocument } from '../components/NewDocument';
+import { PersonSettings } from '../components/PersonSettings';
+import { DocumentInfo } from '../components/DocumentInfo';
 
 const useStateWithLocalStorage = (
   localStorageKey: string
 ): [number, Dispatch<SetStateAction<number>>] => {
   const [value, setValue] = React.useState(
-    parseInt(localStorage.getItem(localStorageKey) || "0")
+    parseInt(localStorage.getItem(localStorageKey) || '0')
   );
 
   React.useEffect(() => {
@@ -32,35 +40,35 @@ const useStateWithLocalStorage = (
 
 type SearchCriterion = {
   criterion:
-    | "id"
-    | "docType"
-    | "docNumber"
-    | "subject"
-    | "writtenOn"
-    | "sender";
+    | 'id'
+    | 'docType'
+    | 'docNumber'
+    | 'subject'
+    | 'writtenOn'
+    | 'sender';
   displayName: string;
 };
 
 const searchCriteria: SearchCriterion[] = [
   {
-    criterion: "id",
-    displayName: "No.",
+    criterion: 'id',
+    displayName: 'No.',
   },
   {
-    criterion: "docType",
-    displayName: "Document type",
+    criterion: 'docType',
+    displayName: 'Document type',
   },
   {
-    criterion: "docNumber",
-    displayName: "Document no.",
+    criterion: 'docNumber',
+    displayName: 'Document no.',
   },
   {
-    criterion: "subject",
-    displayName: "Subject",
+    criterion: 'subject',
+    displayName: 'Subject',
   },
   {
-    criterion: "sender",
-    displayName: "Sender",
+    criterion: 'sender',
+    displayName: 'Sender',
   },
 ];
 
@@ -80,18 +88,24 @@ export const Documents: React.FC = () => {
     loading: docTypesLoading,
     error: docTypesError,
   } = useDocumentTypesQuery();
+
   const [searchCriterion, setSearchCriterion] = useState<SearchCriterion>(
     searchCriteria[0]
   );
-  const [search, setSearch] = useState("");
-  const [showNewDialog, setShowNewDialog] = useState(false);
+  const [search, setSearch] = useState('');
   const [currRecipient, setCurrRecipient] = useStateWithLocalStorage(
-    "recipient"
+    'recipient'
   );
+  const [advancedSearch, setAdvancedSearch] = useState(false);
+
+  const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
+
+  const [currDocument, setCurrDocument] = useState(0);
 
   if (docLoading || docTypesLoading || perLoading) {
-    return <Loader type="Puff" color="#00bfff" height={100} width={100} />;
+    return <Loading />;
   }
 
   if (docError || docTypesError || perError) {
@@ -116,7 +130,7 @@ export const Documents: React.FC = () => {
         <Row>
           <Col className="d-flex">
             <div>
-              <h2 style={{ display: "table-cell" }}>Documents</h2>
+              <h2 style={{ display: 'table-cell' }}>Documents</h2>
             </div>
             <Button
               variant="outline-primary"
@@ -137,8 +151,9 @@ export const Documents: React.FC = () => {
                 <Form.Control
                   type="search"
                   placeholder="Search"
-                  value={search}
+                  value={advancedSearch ? 'Advanced search' : search}
                   onChange={(e) => setSearch(e.target.value)}
+                  disabled={advancedSearch}
                 />
               </Col>
               <Col xs="auto">
@@ -154,6 +169,7 @@ export const Documents: React.FC = () => {
                       setSearchCriterion(newSearchCriterion);
                     else setSearchCriterion(searchCriteria[0]);
                   }}
+                  disabled={advancedSearch}
                 >
                   {searchCriteria.map((crit) => (
                     <option key={crit.criterion} value={crit.criterion}>
@@ -163,14 +179,27 @@ export const Documents: React.FC = () => {
                 </Form.Control>
               </Col>
               <Col xs="auto">
-                <Button>Advanced</Button>
+                <Button onClick={() => setAdvancedSearch(true)}>
+                  Advanced
+                </Button>
               </Col>
             </Form.Row>
           </Form.Group>
         </Form>
+        {advancedSearch && (
+          <Alert
+            variant="info"
+            onClose={() => setAdvancedSearch(false)}
+            dismissible
+          >
+            Advanced search: <i>criteria</i>
+            <br />
+            Close this message to clear the search
+          </Alert>
+        )}
         <Table striped bordered hover responsive size="sm">
           <colgroup>
-            <col style={{ width: "32px" }}></col>
+            <col style={{ width: '32px' }}></col>
           </colgroup>
           <thead>
             <tr>
@@ -198,18 +227,22 @@ export const Documents: React.FC = () => {
                   } = docInfo;
 
                   if (search.length !== 0) {
-                    let searchAttribute = "";
+                    let searchAttribute: string | undefined | null = '';
                     switch (searchCriterion.criterion) {
-                      case "docType":
+                      case 'id':
+                        searchAttribute = docInfo.id.toString();
+                        break;
+                      case 'docType':
                         searchAttribute = docType!.typeName;
                         break;
-                      case "sender":
-                        searchAttribute = sender.name;
+                      case 'docNumber':
+                        searchAttribute = docInfo.docNumber;
                         break;
-                      default:
-                        searchAttribute = docInfo[
-                          searchCriterion.criterion
-                        ].toString();
+                      case 'subject':
+                        searchAttribute = docInfo.subject;
+                        break;
+                      case 'sender':
+                        searchAttribute = sender.name;
                         break;
                     }
 
@@ -224,13 +257,19 @@ export const Documents: React.FC = () => {
                   }
 
                   return (
-                    <tr key={id}>
+                    <tr
+                      key={id}
+                      onDoubleClick={() => {
+                        setCurrDocument(id);
+                        setShowInfoDialog(true);
+                      }}
+                    >
                       <td>{id}</td>
                       <td>{docType.typeName}</td>
                       <td>{docNumber}</td>
                       <td>{subject}</td>
                       <td>
-                        {writtenOn ? new Date(writtenOn).toDateString() : "n/a"}
+                        {writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}
                       </td>
                       <td>{sender.name}</td>
                     </tr>
@@ -248,18 +287,17 @@ export const Documents: React.FC = () => {
           </tbody>
         </Table>
       </Container>
-      <NewDocument
-        show={showNewDialog}
-        setShow={setShowNewDialog}
-        docTypesData={docTypesData}
-        perData={perData}
-      />
+      <NewDocument show={showNewDialog} setShow={setShowNewDialog} />
       <PersonSettings
         show={showSettingsDialog}
         setShow={setShowSettingsDialog}
-        perData={perData}
         recipient={currRecipient}
         setRecipient={setCurrRecipient}
+      />
+      <DocumentInfo
+        show={showInfoDialog}
+        setShow={setShowInfoDialog}
+        docId={currDocument}
       />
     </>
   );

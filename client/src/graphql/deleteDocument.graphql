@@ -1,0 +1,6 @@
+mutation DeleteDocument($id: Int!) {
+  deleteDocument(id: $id) {
+    status
+    message
+  }
+}

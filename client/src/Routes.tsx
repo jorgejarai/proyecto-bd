@@ -13,12 +13,12 @@ export const Routes: React.FC = () => {
     <BrowserRouter>
       <Header />
       <Switch>
-        <Route exact path='/' component={Home} />
-        <Route exact path='/register' component={Register} />
-        <Route exact path='/login' component={Login} />
-        <Route exact path='/me' component={Me} />
-        <Route exact path='/persons' component={Persons} />
-        <Route exact path='/documents' component={Documents} />
+        <Route exact path="/" component={Home} />
+        <Route exact path="/register" component={Register} />
+        <Route exact path="/login" component={Login} />
+        <Route exact path="/me" component={Me} />
+        <Route exact path="/persons" component={Persons} />
+        <Route exact path="/documents" component={Documents} />
       </Switch>
     </BrowserRouter>
   );

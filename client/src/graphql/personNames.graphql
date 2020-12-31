@@ -1,0 +1,6 @@
+query PersonNames {
+  personNames {
+    id
+    label
+  }
+}

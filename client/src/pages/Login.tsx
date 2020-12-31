@@ -11,13 +11,13 @@ export const Login: React.FC<RouteComponentProps> = ({ history }) => {
 
   return (
     <Container>
-      <Row className='justify-content-md-center mt-3'>
-        <Col xs lg='5'>
-          <h1 className='text-center'>Welcome!</h1>
+      <Row className="justify-content-md-center mt-3">
+        <Col xs lg="5">
+          <h1 className="text-center">Welcome!</h1>
         </Col>
       </Row>
-      <Row className='justify-content-md-center mt-3'>
-        <Col xs lg='5'>
+      <Row className="justify-content-md-center mt-3">
+        <Col xs lg="5">
           <Formik
             initialValues={{ email: '', password: '' }}
             onSubmit={async (values, { setSubmitting }) => {
@@ -59,29 +59,29 @@ export const Login: React.FC<RouteComponentProps> = ({ history }) => {
             {({ isSubmitting }) => (
               <FormikForm>
                 {generalError ? (
-                  <Alert variant='danger'>{generalError}</Alert>
+                  <Alert variant="danger">{generalError}</Alert>
                 ) : null}
                 <Form.Group>
                   <Field
-                    placeholder='Email'
-                    name='email'
-                    type='email'
+                    placeholder="Email"
+                    name="email"
+                    type="email"
                     as={Form.Control}
                   />
                 </Form.Group>
                 <Form.Group>
                   <Field
-                    placeholder='Password'
-                    name='password'
-                    type='password'
+                    placeholder="Password"
+                    name="password"
+                    type="password"
                     as={Form.Control}
                   />
                 </Form.Group>
                 <Button
-                  variant='primary'
+                  variant="primary"
                   disabled={isSubmitting}
-                  className='justify-content-center'
-                  type='submit'
+                  className="justify-content-center"
+                  type="submit"
                 >
                   {isSubmitting ? 'Hang on...' : 'Login'}
                 </Button>
@@ -90,11 +90,11 @@ export const Login: React.FC<RouteComponentProps> = ({ history }) => {
           </Formik>
         </Col>
       </Row>
-      <Row className='justify-content-md-center'>
-        <Col md='auto'>
-          <div className='mt-3 '>
+      <Row className="justify-content-md-center">
+        <Col md="auto">
+          <div className="mt-3 ">
             Don't have an account? Just create one{' '}
-            <Link to='/register'>here</Link>!
+            <Link to="/register">here</Link>!
           </div>
         </Col>
       </Row>

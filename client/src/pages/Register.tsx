@@ -22,13 +22,13 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
 
   return (
     <Container>
-      <Row className='justify-content-md-center mt-3'>
-        <Col xs lg='5'>
-          <h1 className='text-center'>Register</h1>
+      <Row className="justify-content-md-center mt-3">
+        <Col xs lg="5">
+          <h1 className="text-center">Register</h1>
         </Col>
       </Row>
-      <Row className='justify-content-md-center mt-3'>
-        <Col xs lg='5'>
+      <Row className="justify-content-md-center mt-3">
+        <Col xs lg="5">
           <Formik
             initialValues={{
               email: '',
@@ -68,60 +68,60 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
             {({ errors, isSubmitting }) => (
               <FormikForm noValidate>
                 {generalError ? (
-                  <Alert variant='danger'>{generalError}</Alert>
+                  <Alert variant="danger">{generalError}</Alert>
                 ) : null}
-                <Form.Group as={Col} controlId='validationFormikEmail'>
+                <Form.Group as={Col} controlId="validationFormikEmail">
                   <Field
-                    placeholder='Email'
-                    name='email'
-                    type='email'
+                    placeholder="Email"
+                    name="email"
+                    type="email"
                     as={Form.Control}
                     isInvalid={errors.email}
                   />
-                  <Form.Control.Feedback type='invalid'>
+                  <Form.Control.Feedback type="invalid">
                     {errors.email}
                   </Form.Control.Feedback>
                 </Form.Group>
-                <Form.Group as={Col} controlId='validationFormikName'>
+                <Form.Group as={Col} controlId="validationFormikName">
                   <Field
-                    placeholder='Name'
-                    name='name'
+                    placeholder="Name"
+                    name="name"
                     isInvalid={errors.name}
                     as={Form.Control}
                   />
-                  <Form.Control.Feedback type='invalid'>
+                  <Form.Control.Feedback type="invalid">
                     {errors.name}
                   </Form.Control.Feedback>
                 </Form.Group>
-                <Form.Group as={Col} controlId='validationFormikPassword'>
+                <Form.Group as={Col} controlId="validationFormikPassword">
                   <Field
-                    placeholder='Password'
-                    name='password'
-                    type='password'
+                    placeholder="Password"
+                    name="password"
+                    type="password"
                     as={Form.Control}
                     isInvalid={errors.password}
                   />
-                  <Form.Control.Feedback type='invalid'>
+                  <Form.Control.Feedback type="invalid">
                     {errors.password}
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group
                   as={Col}
-                  controlId='validationFormikConfirmPassword'
+                  controlId="validationFormikConfirmPassword"
                 >
                   <Field
-                    placeholder='Confirm your password'
-                    name='confirmPassword'
-                    type='password'
+                    placeholder="Confirm your password"
+                    name="confirmPassword"
+                    type="password"
                     as={Form.Control}
                     isInvalid={errors.confirmPassword}
                   />
-                  <Form.Control.Feedback type='invalid'>
+                  <Form.Control.Feedback type="invalid">
                     {errors.confirmPassword}
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group as={Col}>
-                  <Button disabled={isSubmitting} type='submit'>
+                  <Button disabled={isSubmitting} type="submit">
                     {isSubmitting ? 'Hang on...' : 'Register'}
                   </Button>
                 </Form.Group>
@@ -130,10 +130,10 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
           </Formik>
         </Col>
       </Row>
-      <Row className='justify-content-md-center'>
-        <Col md='auto'>
-          <div className='mt-3 '>
-            Already have an account? Just log in <Link to='/login'>here</Link>!
+      <Row className="justify-content-md-center">
+        <Col md="auto">
+          <div className="mt-3 ">
+            Already have an account? Just log in <Link to="/login">here</Link>!
           </div>
         </Col>
       </Row>

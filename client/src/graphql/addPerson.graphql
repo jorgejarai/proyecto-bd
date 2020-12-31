@@ -4,7 +4,7 @@ mutation AddPerson(
   $division: String
   $address: Int
   $email: String
-  $phone: Int
+  $phone: String
 ) {
   addPerson(
     rut: $rut
@@ -14,7 +14,10 @@ mutation AddPerson(
     email: $email
     phone: $phone
   ) {
-    status
+    status {
+      status
+      message
+    }
     person {
       id
       rut

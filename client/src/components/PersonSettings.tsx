@@ -1,13 +1,13 @@
-import React, { Dispatch, SetStateAction } from "react";
-import { Button, Col, Form, Modal } from "react-bootstrap";
-import { Formik, Form as FormikForm, Field } from "formik";
-import { PersonsQuery } from "../generated/graphql";
-import { Typeahead } from "react-bootstrap-typeahead";
+import React, { Dispatch, SetStateAction } from 'react';
+import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
+import { Formik, Form as FormikForm, Field } from 'formik';
+import { usePersonNamesQuery } from '../generated/graphql';
+import { Typeahead } from 'react-bootstrap-typeahead';
+import loadingImage from '../assets/loading.svg';
 
 interface Props {
   show: boolean;
   setShow: Dispatch<SetStateAction<boolean>>;
-  perData: PersonsQuery;
   recipient: number;
   setRecipient: Dispatch<SetStateAction<number>>;
 }
@@ -15,30 +15,53 @@ interface Props {
 export const PersonSettings: React.FC<Props> = ({
   show,
   setShow,
-  perData,
   recipient,
   setRecipient,
 }) => {
-  let personsList: any[] = [];
+  const { data, loading, error } = usePersonNamesQuery();
 
-  perData.persons.forEach(({ person, address }) => {
-    if (!person || !address) {
-      return;
-    }
+  if (loading) {
+    return (
+      <Modal show={show} onHide={() => setShow(false)}>
+        <Modal.Header>
+          <Modal.Title>Settings</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Row>
+            <Col className="d-flex justify-content-center mt-5 mb-5">
+              <img alt="Loading..." src={loadingImage} />
+            </Col>
+          </Row>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => setShow(false)}>
+            OK
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
 
-    if (person.division)
-      personsList = [
-        ...personsList,
-        {
-          id: person.id,
-          label: `${person.name} - ${person.division}`,
-        },
-      ];
-    else personsList = [...personsList, { id: person.id, label: person.name }];
-  });
+  if (error || !data || !data.personNames) {
+    return (
+      <Modal show={show} onHide={() => setShow(false)}>
+        <Modal.Header>
+          <Modal.Title>Settings</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>There was a problem loading the data.</Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={() => setShow(false)}>
+            OK
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    );
+  }
 
-  const initialPerson = personsList.find((person) => person.id === recipient);
-  const initialPersonLabel = initialPerson ? initialPerson.label : "";
+  const initialPerson = data.personNames.find(
+    (person) => person.id === recipient
+  );
+  const initialPersonLabel = initialPerson ? initialPerson.label : '';
 
   return (
     <Modal show={show} onHide={() => setShow(false)}>
@@ -70,10 +93,10 @@ export const PersonSettings: React.FC<Props> = ({
                       name="recipient"
                       defaultInputValue={initialPersonLabel}
                       as={Typeahead}
-                      options={personsList}
+                      options={data.personNames}
                       onChange={(selected: any[]) => {
                         const sender = selected[0] ? selected[0].id : null;
-                        setFieldValue("recipient", sender);
+                        setFieldValue('recipient', sender);
                       }}
                     />
                   </Form.Group>
@@ -88,7 +111,7 @@ export const PersonSettings: React.FC<Props> = ({
                   Cancel
                 </Button>
                 <Button variant="primary" disabled={isSubmitting} type="submit">
-                  {isSubmitting ? "Hang on..." : "OK"}
+                  {isSubmitting ? 'Hang on...' : 'OK'}
                 </Button>
               </Modal.Footer>
             </FormikForm>

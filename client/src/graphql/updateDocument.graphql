@@ -1,0 +1,48 @@
+mutation UpdateDocument(
+  $docId: Int!
+  $metadata: DocumentUpdateInput!
+  $sender: Int!
+  $recipients: [RecipientInput!]!
+) {
+  updateDocument(
+    docId: $docId
+    metadata: $metadata
+    sender: $sender
+    recipients: $recipients
+  ) {
+    document {
+      id
+      docNumber
+      subject
+      writtenOn
+      docType {
+        id
+        typeName
+      }
+      recordedBy {
+        id
+        name
+      }
+    }
+    sender {
+      id
+      rut
+      name
+      division
+      phone
+      email
+    }
+    sentOn
+    recipients {
+      person {
+        id
+        rut
+        name
+        division
+        phone
+        email
+      }
+      receivedOn
+    }
+  }
+}

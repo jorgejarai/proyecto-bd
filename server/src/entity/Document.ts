@@ -28,9 +28,9 @@ export class Document extends BaseEntity {
   @Column({ name: 'subject' })
   subject: string;
 
-  @Field(() => Date, { nullable: true })
-  @Column({ name: 'written_on', nullable: true })
-  writtenOn?: Date;
+  @Field(() => String, { nullable: true })
+  @Column({ name: 'written_on', type: 'date', nullable: true })
+  writtenOn?: string;
 
   @Field(() => DocumentType)
   @ManyToOne(() => DocumentType, (documentType) => documentType.documents, {
@@ -49,9 +49,9 @@ export class Document extends BaseEntity {
   @JoinColumn({ name: 'sender' })
   sender: Person;
 
-  @Field(() => Date, { nullable: true })
-  @Column({ name: 'sent_on', nullable: true })
-  sentOn?: Date;
+  @Field(() => String, { nullable: true })
+  @Column({ name: 'sent_on', type: 'date', nullable: true })
+  sentOn?: string;
 
   @OneToMany(() => File, (file) => file.document)
   files: File[];

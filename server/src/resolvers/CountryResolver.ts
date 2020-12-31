@@ -1,6 +1,6 @@
-import { Arg, Query, Resolver, UseMiddleware, Int } from "type-graphql";
-import { isAuth } from "../isAuth";
-import { Country } from "../entity/Country";
+import { Arg, Query, Resolver, UseMiddleware, Int } from 'type-graphql';
+import { isAuth } from '../isAuth';
+import { Country } from '../entity/Country';
 
 @Resolver()
 export class CountryResolver {
@@ -12,7 +12,7 @@ export class CountryResolver {
 
   @Query(() => Country, { nullable: true })
   @UseMiddleware(isAuth)
-  async country(@Arg("countryNumber", () => Int) countryNumber: number) {
+  async country(@Arg('countryNumber', () => Int) countryNumber: number) {
     return Country.findOne({ countryNumber });
   }
 }

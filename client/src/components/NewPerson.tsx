@@ -1,14 +1,15 @@
-import React, { Dispatch, SetStateAction } from "react";
+import React, { Dispatch, SetStateAction } from 'react';
 import {
   CountriesQuery,
   PersonsQuery,
   PersonsDocument,
   useAddPersonMutation,
   useAddAddressMutation,
-} from "../generated/graphql";
-import { Button, Col, Form, Modal } from "react-bootstrap";
-import { Formik, Form as FormikForm, Field } from "formik";
-import * as yup from "yup";
+} from '../generated/graphql';
+import { Button, Col, Form, Modal } from 'react-bootstrap';
+import { Formik, Form as FormikForm, Field } from 'formik';
+import { personSchema } from '../schemas';
+import { validateRut } from '../rutUtils';
 
 interface Props {
   show: boolean;
@@ -16,30 +17,31 @@ interface Props {
   countryData: CountriesQuery;
 }
 
-export const personSchema = yup.object({
-  name: yup.string().min(5).max(64).required(),
-  division: yup.string().min(3).max(64),
-  address: yup.number().integer(),
-  // .when('email', {
-  //   is: (email) => !email,
-  //   then: yup.number().integer().required(),
-  //   otherwise: yup.number().integer(),
-  // }),
-  country: yup.number().integer(),
-  email: yup.string().email().max(254),
-  // .when('address', {
-  //   is: (address) => !address || address.length === 0,
-  //   then: yup.string().email().required(),
-  //   otherwise: yup.string().email(),
-  // }),
-  phone: yup.number().integer(),
-});
+interface FormInitialValues {
+  name: string;
+  rut: string | null;
+  division: string | null;
+  address: string;
+  country: number;
+  email: string | null;
+  phone: string | null;
+  postalCode: string | null;
+}
 
 export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
   const [addAddress, { client }] = useAddAddressMutation();
   const [addPerson] = useAddPersonMutation();
 
-  console.log(countryData);
+  const initialValues: FormInitialValues = {
+    name: '',
+    rut: '',
+    division: '',
+    address: '',
+    country: 152,
+    email: '',
+    phone: '',
+    postalCode: '',
+  };
 
   return (
     <Modal show={show} onHide={() => setShow(false)}>
@@ -47,15 +49,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
         <Modal.Title>New Person</Modal.Title>
       </Modal.Header>
       <Formik
-        initialValues={{
-          name: "",
-          rut: "",
-          division: "",
-          address: "",
-          country: 152,
-          email: "",
-          phone: null,
-        }}
+        initialValues={initialValues}
         onSubmit={async (values, { setSubmitting }) => {
           const {
             name,
@@ -65,6 +59,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
             country,
             email,
             phone,
+            postalCode,
           } = values;
           setSubmitting(true);
 
@@ -72,16 +67,16 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
             variables: {
               address,
               country,
-              // postalCode
+              postalCode,
             },
           });
 
           if (!addressResponse || !addressResponse.data) {
-            console.error("General error");
+            console.error('General error');
             return;
           }
 
-          const addressId = addressResponse.data.addAddress;
+          const addressId = addressResponse.data.addAddress.address?.id;
 
           if (!addressId) {
             return null;
@@ -90,8 +85,8 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
           const personResponse = await addPerson({
             variables: {
               name,
-              rut,
-              division,
+              rut: rut && rut !== '' ? parseInt(rut.slice(0, -2)) : null,
+              division: division !== '' ? division : null,
               email,
               phone,
               address: addressId,
@@ -116,7 +111,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
           });
 
           if (!personResponse || !personResponse.data) {
-            console.error("General error");
+            console.error('General error');
             return;
           }
 
@@ -125,13 +120,19 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
         }}
         validationSchema={personSchema}
       >
-        {({ errors, isSubmitting, setFieldValue }) => (
+        {({ errors, isSubmitting, isValid, setFieldValue }) => (
           <>
+            {console.log(errors)}
             <FormikForm>
               <Modal.Body>
                 <Form.Row>
                   <Form.Group as={Col} xs={8}>
-                    <Field placeholder="Name" name="name" as={Form.Control} />
+                    <Field
+                      placeholder="Name"
+                      name="name"
+                      as={Form.Control}
+                      isInvalid={!!errors.name}
+                    />
                     <Form.Control.Feedback type="invalid">
                       {errors.name}
                     </Form.Control.Feedback>
@@ -140,35 +141,8 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                     <Field
                       placeholder="RUT"
                       name="rut"
-                      validate={(rut: string) => {
-                        if (rut.length < 3) return "Invalid RUT";
-                        else if (!rut.match(/[0-9.]+-[0-9kK]/g))
-                          return "Invalid RUT";
-
-                        const rawRut = rut.replace(".", "").replace("-", "");
-
-                        const rutNumber = rawRut
-                          .slice(0, -1)
-                          .split("")
-                          .reverse()
-                          .join("");
-                        let rutDv = rawRut.slice(-1).toUpperCase();
-
-                        if (rutDv === "K") rutDv = "10";
-                        else if (rutDv === "0") rutDv = "11";
-
-                        console.log(rutNumber);
-                        let acc = 0;
-                        for (let i = 0, j = 0; i < rutNumber.length; i++, j++) {
-                          acc += parseInt(rutNumber.charAt(i)) * (2 + (j % 6));
-                        }
-
-                        const expectedDv = 11 - (acc % 11);
-                        const givenDv = parseInt(rutDv);
-
-                        if (expectedDv !== givenDv) return "Invalid RUT";
-                      }}
                       as={Form.Control}
+                      validate={validateRut}
                       isInvalid={!!errors.rut}
                     />
                     <Form.Control.Feedback type="invalid">
@@ -177,14 +151,26 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                   </Form.Group>
                 </Form.Row>
                 <Form.Row>
-                  <Form.Group as={Col}>
+                  <Form.Group as={Col} xs={9}>
                     <Field
                       placeholder="Division"
                       name="division"
                       as={Form.Control}
+                      isInvalid={!!errors.division}
                     />
                     <Form.Control.Feedback type="invalid">
                       {errors.division}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+                  <Form.Group as={Col} xs={3}>
+                    <Field
+                      placeholder="Postal code"
+                      name="postalCode"
+                      as={Form.Control}
+                      isInvalid={!!errors.postalCode}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.postalCode}
                     </Form.Control.Feedback>
                   </Form.Group>
                 </Form.Row>
@@ -194,6 +180,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                       placeholder="Address"
                       name="address"
                       as={Form.Control}
+                      isInvalid={!!errors.address}
                     />
                     <Form.Control.Feedback type="invalid">
                       {errors.address}
@@ -206,13 +193,14 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                       onChange={(event) => {
                         const newCountry = countryData.countries.find(
                           ({ countryNumber }) =>
-                            "" + countryNumber === event.target.value
+                            '' + countryNumber === event.target.value
                         );
 
                         if (newCountry)
-                          setFieldValue("country", newCountry.countryNumber);
-                        else setFieldValue("country", 152);
+                          setFieldValue('country', newCountry.countryNumber);
+                        else setFieldValue('country', 152);
                       }}
+                      isInvalid={!!errors.country}
                     >
                       {countryData.countries.map((country) => (
                         <option
@@ -231,7 +219,12 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                 </Form.Row>
                 <Form.Row>
                   <Form.Group as={Col} xs={8}>
-                    <Field placeholder="Email" name="email" as={Form.Control} />
+                    <Field
+                      placeholder="Email"
+                      name="email"
+                      as={Form.Control}
+                      isInvalid={!!errors.email}
+                    />
                     <Form.Control.Feedback type="invalid">
                       {errors.email}
                     </Form.Control.Feedback>
@@ -242,6 +235,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                       name="phone"
                       as={Form.Control}
                       type="tel"
+                      isInvalid={!!errors.phone}
                     />
                     <Form.Control.Feedback type="invalid">
                       {errors.phone}
@@ -256,9 +250,9 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                 <Button
                   variant="primary"
                   type="submit"
-                  disabled={isSubmitting || !!errors}
+                  disabled={isSubmitting || !isValid}
                 >
-                  {isSubmitting ? "Hang on..." : "Add"}
+                  {isSubmitting ? 'Hang on...' : 'Add'}
                 </Button>
               </Modal.Footer>
             </FormikForm>

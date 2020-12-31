@@ -1,6 +1,6 @@
 root = true
 
-[{src,scripts}/**.{ts,tsx,json,js,jsx}]
+[**.{ts,tsx,json,js,jsx}]
 end_of_line = lf
 charset = utf-8
 trim_trailing_whitespace = true

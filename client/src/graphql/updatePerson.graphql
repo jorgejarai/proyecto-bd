@@ -1,0 +1,16 @@
+mutation UpdatePerson($perId: Int!, $data: PersonUpdateInput!) {
+  updatePerson(perId: $perId, data: $data) {
+    status {
+      status
+      message
+    }
+    person {
+      id
+      rut
+      name
+      division
+      phone
+      email
+    }
+  }
+}

@@ -1,21 +1,21 @@
-import React from "react";
-import { Container, Table } from "react-bootstrap";
-import { useUsersQuery } from "../generated/graphql";
-import { Redirect } from "react-router-dom";
-import Loader from "react-loader-spinner";
+import React from 'react';
+import { Container, Table } from 'react-bootstrap';
+import { useUsersQuery } from '../generated/graphql';
+import { Redirect } from 'react-router-dom';
+import { Loading } from '../components/Loading';
 
 interface Props {}
 
 export const Home: React.FC<Props> = () => {
   const { data, loading, error } = useUsersQuery({
-    fetchPolicy: "network-only",
+    fetchPolicy: 'network-only',
   });
 
   if (loading) {
-    return <Loader type="Puff" color="#00bfff" height={100} width={100} />;
+    return <Loading />;
   }
 
-  if (error && error.message === "Not authenticated") {
+  if (error && error.message === 'Not authenticated') {
     return <Redirect to="/login" />;
   }
 
