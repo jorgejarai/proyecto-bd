@@ -1,9 +1,15 @@
 query Countries {
   countries {
-    countryNumber
-    name
-    isoName
-    alpha2
-    alpha3
+    status {
+      status
+      message
+    }
+    countries {
+      countryNumber
+      name
+      isoName
+      alpha2
+      alpha3
+    }
   }
 }

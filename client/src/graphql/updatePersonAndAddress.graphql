@@ -1,11 +1,17 @@
 mutation UpdatePersonAndAddress(
   $person: Int!
-  $perData: PersonUpdateInput!
+  $data: PersonUpdateInput!
   $address: String!
   $postalCode: String
   $country: Int!
 ) {
-  updatePerson(perId: $person, data: $perData) {
+  updatePersonAndAddress(
+    person: $person
+    data: $data
+    address: $address
+    postalCode: $postalCode
+    country: $country
+  ) {
     status {
       status
       message
@@ -17,25 +23,13 @@ mutation UpdatePersonAndAddress(
       division
       phone
       email
-    }
-  }
-
-  updateAddress(
-    person: $person
-    address: $address
-    postalCode: $postalCode
-    country: $country
-  ) {
-    status {
-      status
-      message
-    }
-    address {
-      id
-      address
-      postalCode
-      country {
-        countryNumber
+      address {
+        id
+        address
+        postalCode
+        country {
+          countryNumber
+        }
       }
     }
   }

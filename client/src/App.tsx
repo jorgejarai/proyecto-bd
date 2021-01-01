@@ -9,7 +9,7 @@ export const App: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('http://localhost:4000/refresh_token', {
+    fetch('https://192.168.18.108:4000/refresh_token', {
       method: 'POST',
       credentials: 'include',
     }).then(async (res) => {

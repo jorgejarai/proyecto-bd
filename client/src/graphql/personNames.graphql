@@ -1,6 +1,12 @@
 query PersonNames {
   personNames {
-    id
-    label
+    status {
+      status
+      message
+    }
+    personNames {
+      id
+      label
+    }
   }
 }

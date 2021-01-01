@@ -1,18 +1,47 @@
-import { Arg, Query, Resolver, UseMiddleware, Int } from 'type-graphql';
+import {
+  Field,
+  ObjectType,
+  Query,
+  Resolver,
+  UseMiddleware,
+} from 'type-graphql';
 import { isAuth } from '../isAuth';
 import { Country } from '../entity/Country';
+import { StatusResponse } from '../StatusResponse';
+
+@ObjectType()
+class CountriesResponse {
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
+  @Field(() => [Country])
+  countries: Country[];
+}
 
 @Resolver()
 export class CountryResolver {
-  @Query(() => [Country])
+  @Query(() => CountriesResponse)
   @UseMiddleware(isAuth)
-  async countries() {
-    return Country.find();
-  }
+  async countries(): Promise<CountriesResponse> {
+    try {
+      let countries = await Country.find();
 
-  @Query(() => Country, { nullable: true })
-  @UseMiddleware(isAuth)
-  async country(@Arg('countryNumber', () => Int) countryNumber: number) {
-    return Country.findOne({ countryNumber });
+      return {
+        status: {
+          status: 'ok',
+        },
+        countries,
+      };
+    } catch (e) {
+      console.log(e);
+
+      return {
+        status: {
+          status: 'error',
+          message: 'Could not get countries',
+        },
+        countries: [],
+      };
+    }
   }
 }

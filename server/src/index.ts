@@ -15,13 +15,15 @@ import { PersonResolver } from './resolvers/PersonResolver';
 import { DocumentResolver } from './resolvers/DocumentResolver';
 import { AddressResolver } from './resolvers/AddressResolver';
 import { CountryResolver } from './resolvers/CountryResolver';
+import https from 'https';
+import fs from 'fs';
 
 (async () => {
   const app = express();
 
   app.use(
     cors({
-      origin: ['http://localhost:3000'],
+      origin: ['https://192.168.18.108:3000'],
       credentials: true,
     })
   );
@@ -78,9 +80,15 @@ import { CountryResolver } from './resolvers/CountryResolver';
 
   apolloServer.applyMiddleware({ app, cors: false });
 
-  app.listen(4000, () => {
-    console.log('Server listening on port 4000');
-  });
-})();
+  const server = https.createServer(
+    {
+      key: fs.readFileSync('../.ssl/server.key'),
+      cert: fs.readFileSync('../.ssl/server.crt'),
+    },
+    app
+  );
 
-// vim: ts=2 sw=2 et
+  server.listen({ port: 4000 }, () =>
+    console.log('🚀 Server ready at https://192.168.18.108:4000')
+  );
+})();

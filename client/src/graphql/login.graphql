@@ -1,7 +1,9 @@
 mutation Login($email: String!, $password: String!) {
   login(email: $email, password: $password) {
-    status
-    message
+    status {
+      status
+      message
+    }
     user {
       id
       name

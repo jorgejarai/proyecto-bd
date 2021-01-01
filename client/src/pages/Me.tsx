@@ -25,10 +25,10 @@ export const Me: React.FC = () => {
     <Container>
       <div className="mt-3">
         <div>
-          {data.me.name} ({data.me.username})
+          {data.me.user?.name} ({data.me.user?.username})
         </div>
         <div>
-          <a href={`mailto:${data.me.email}`}>{data.me.email}</a>
+          <a href={`mailto:${data.me.user?.email}`}>{data.me.user?.email}</a>
         </div>
       </div>
     </Container>

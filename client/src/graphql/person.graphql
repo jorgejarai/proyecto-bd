@@ -1,5 +1,9 @@
 query Person($id: Int!) {
   person(id: $id) {
+    status {
+      status
+      message
+    }
     person {
       id
       name
@@ -7,13 +11,14 @@ query Person($id: Int!) {
       division
       phone
       email
-    }
-    address {
-      address
-      postalCode
-      country {
-        countryNumber
-        name
+      address {
+        id
+        address
+        postalCode
+        country {
+          countryNumber
+          name
+        }
       }
     }
   }

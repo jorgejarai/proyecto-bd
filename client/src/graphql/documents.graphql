@@ -1,6 +1,10 @@
 query Documents {
   documents {
-    document {
+    status {
+      status
+      message
+    }
+    documents {
       id
       docType {
         id
@@ -16,18 +20,7 @@ query Documents {
         email
         isClerk
       }
-    }
-    sender {
-      id
-      name
-      rut
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         name
         rut
@@ -35,7 +28,18 @@ query Documents {
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          name
+          rut
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }

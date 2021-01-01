@@ -9,28 +9,19 @@ export type Scalars = {
   Boolean: boolean;
   Int: number;
   Float: number;
-  /** The javascript `Date` as string. Type represents date and time as the ISO Date string. */
-  DateTime: any;
 };
 
 export type Query = {
   __typename?: 'Query';
-  hello: Scalars['String'];
-  bye: Scalars['String'];
-  users: Array<User>;
-  me?: Maybe<User>;
-  persons: Array<PersonResponse>;
+  users: UsersResponse;
+  me: UserResponse;
+  persons: PersonsResponse;
   person?: Maybe<PersonResponse>;
-  personAddress?: Maybe<Address>;
-  personsAddresses: Array<PersonResponse>;
-  personNames: Array<PersonNameResponse>;
-  documents: Array<DocumentResponse>;
-  document?: Maybe<DocumentResponse>;
-  documentTypes: Array<DocumentType>;
-  getRecipients?: Maybe<Array<RecipientResponse>>;
-  address: AddressResponse;
-  countries: Array<Country>;
-  country?: Maybe<Country>;
+  personNames: PersonNamesResponse;
+  documents: DocumentsResponse;
+  document: DocumentResponse;
+  documentTypes: DocumentTypesResponse;
+  countries: CountriesResponse;
 };
 
 
@@ -39,35 +30,20 @@ export type QueryPersonArgs = {
 };
 
 
-export type QueryPersonAddressArgs = {
-  date?: Maybe<Scalars['DateTime']>;
-  id: Scalars['Int'];
-};
-
-
-export type QueryPersonsAddressesArgs = {
-  date?: Maybe<Scalars['DateTime']>;
-  ids: Array<Scalars['Int']>;
-};
-
-
 export type QueryDocumentArgs = {
   id: Scalars['Int'];
 };
 
-
-export type QueryGetRecipientsArgs = {
-  id: Scalars['Int'];
+export type UsersResponse = {
+  __typename?: 'UsersResponse';
+  status: StatusResponse;
+  users: Array<User>;
 };
 
-
-export type QueryAddressArgs = {
-  id: Scalars['Int'];
-};
-
-
-export type QueryCountryArgs = {
-  countryNumber: Scalars['Int'];
+export type StatusResponse = {
+  __typename?: 'StatusResponse';
+  status: Scalars['String'];
+  message?: Maybe<Scalars['String']>;
 };
 
 export type User = {
@@ -80,11 +56,16 @@ export type User = {
   isClerk: Scalars['Boolean'];
 };
 
-export type PersonResponse = {
-  __typename?: 'PersonResponse';
-  person?: Maybe<PersonOutput>;
+export type UserResponse = {
+  __typename?: 'UserResponse';
   status: StatusResponse;
-  address?: Maybe<Address>;
+  user?: Maybe<User>;
+};
+
+export type PersonsResponse = {
+  __typename?: 'PersonsResponse';
+  status: StatusResponse;
+  persons: Array<PersonOutput>;
 };
 
 export type PersonOutput = {
@@ -95,12 +76,7 @@ export type PersonOutput = {
   division?: Maybe<Scalars['String']>;
   phone?: Maybe<Scalars['String']>;
   email?: Maybe<Scalars['String']>;
-};
-
-export type StatusResponse = {
-  __typename?: 'StatusResponse';
-  status: Scalars['String'];
-  message?: Maybe<Scalars['String']>;
+  address?: Maybe<Address>;
 };
 
 export type Address = {
@@ -120,20 +96,28 @@ export type Country = {
   alpha3: Scalars['String'];
 };
 
+export type PersonResponse = {
+  __typename?: 'PersonResponse';
+  person?: Maybe<PersonOutput>;
+  status: StatusResponse;
+};
 
-export type PersonNameResponse = {
-  __typename?: 'PersonNameResponse';
+export type PersonNamesResponse = {
+  __typename?: 'PersonNamesResponse';
+  status: StatusResponse;
+  personNames: Array<PersonNameOutput>;
+};
+
+export type PersonNameOutput = {
+  __typename?: 'PersonNameOutput';
   id: Scalars['Int'];
   label: Scalars['String'];
 };
 
-export type DocumentResponse = {
-  __typename?: 'DocumentResponse';
-  document: DocumentOutput;
-  sender: PersonOutput;
-  sentOn?: Maybe<Scalars['String']>;
-  recipients: Array<RecipientResponse>;
-  files: Array<File>;
+export type DocumentsResponse = {
+  __typename?: 'DocumentsResponse';
+  status: StatusResponse;
+  documents: Array<DocumentOutput>;
 };
 
 export type DocumentOutput = {
@@ -144,6 +128,10 @@ export type DocumentOutput = {
   writtenOn?: Maybe<Scalars['String']>;
   docType: DocumentType;
   recordedBy: User;
+  sender?: Maybe<PersonOutput>;
+  sentOn?: Maybe<Scalars['String']>;
+  recipients?: Maybe<Array<RecipientResponse>>;
+  files?: Maybe<Array<File>>;
 };
 
 export type DocumentType = {
@@ -165,31 +153,37 @@ export type File = {
   blob: Scalars['String'];
 };
 
-export type AddressResponse = {
-  __typename?: 'AddressResponse';
+export type DocumentResponse = {
+  __typename?: 'DocumentResponse';
   status: StatusResponse;
-  address?: Maybe<Address>;
+  document?: Maybe<DocumentOutput>;
+};
+
+export type DocumentTypesResponse = {
+  __typename?: 'DocumentTypesResponse';
+  status: StatusResponse;
+  docTypes: Array<DocumentType>;
+};
+
+export type CountriesResponse = {
+  __typename?: 'CountriesResponse';
+  status: StatusResponse;
+  countries: Array<Country>;
 };
 
 export type Mutation = {
   __typename?: 'Mutation';
-  revokeRefreshTokens: Scalars['Boolean'];
   logout: Scalars['Boolean'];
   login: LoginResponse;
-  register: RegisterResponse;
-  addPerson?: Maybe<PersonResponse>;
-  updatePerson?: Maybe<PersonResponse>;
-  updateAddress: PersonResponse;
-  addDocument?: Maybe<DocumentResponse>;
-  addRecipient: Scalars['Boolean'];
+  register: StatusResponse;
+  addPerson: PersonResponse;
+  updatePerson: PersonResponse;
+  updatePersonAndAddress: PersonResponse;
+  deletePerson: StatusResponse;
+  addDocument: DocumentResponse;
   updateDocument?: Maybe<DocumentResponse>;
   deleteDocument: StatusResponse;
   addAddress: AddressResponse;
-};
-
-
-export type MutationRevokeRefreshTokensArgs = {
-  userId: Scalars['Int'];
 };
 
 
@@ -222,11 +216,17 @@ export type MutationUpdatePersonArgs = {
 };
 
 
-export type MutationUpdateAddressArgs = {
+export type MutationUpdatePersonAndAddressArgs = {
   country: Scalars['Int'];
   postalCode?: Maybe<Scalars['String']>;
   address: Scalars['String'];
+  data: PersonUpdateInput;
   person: Scalars['Int'];
+};
+
+
+export type MutationDeletePersonArgs = {
+  id: Scalars['Int'];
 };
 
 
@@ -238,13 +238,6 @@ export type MutationAddDocumentArgs = {
   writtenOn?: Maybe<Scalars['String']>;
   subject: Scalars['String'];
   docNumber?: Maybe<Scalars['String']>;
-};
-
-
-export type MutationAddRecipientArgs = {
-  receivedOn: Scalars['String'];
-  recipient: Scalars['Int'];
-  document: Scalars['Int'];
 };
 
 
@@ -269,16 +262,9 @@ export type MutationAddAddressArgs = {
 
 export type LoginResponse = {
   __typename?: 'LoginResponse';
-  status: Scalars['String'];
+  status: StatusResponse;
   accessToken?: Maybe<Scalars['String']>;
   user?: Maybe<User>;
-  message?: Maybe<Scalars['String']>;
-};
-
-export type RegisterResponse = {
-  __typename?: 'RegisterResponse';
-  status: Scalars['String'];
-  message?: Maybe<Scalars['String']>;
 };
 
 export type PersonUpdateInput = {
@@ -300,6 +286,12 @@ export type DocumentUpdateInput = {
   writtenOn?: Maybe<Scalars['String']>;
   docType?: Maybe<Scalars['Int']>;
   sentOn?: Maybe<Scalars['String']>;
+};
+
+export type AddressResponse = {
+  __typename?: 'AddressResponse';
+  status: StatusResponse;
+  address?: Maybe<Address>;
 };
 
 export type AddAddressMutationVariables = Exact<{
@@ -340,31 +332,33 @@ export type AddDocumentMutationVariables = Exact<{
 
 export type AddDocumentMutation = (
   { __typename?: 'Mutation' }
-  & { addDocument?: Maybe<(
+  & { addDocument: (
     { __typename?: 'DocumentResponse' }
-    & Pick<DocumentResponse, 'sentOn'>
-    & { document: (
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), document?: Maybe<(
       { __typename?: 'DocumentOutput' }
-      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
+      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn' | 'sentOn'>
       & { docType: (
         { __typename?: 'DocumentType' }
         & Pick<DocumentType, 'id' | 'typeName'>
       ), recordedBy: (
         { __typename?: 'User' }
         & Pick<User, 'id' | 'name'>
-      ) }
-    ), sender: (
-      { __typename?: 'PersonOutput' }
-      & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
-    ), recipients: Array<(
-      { __typename?: 'RecipientResponse' }
-      & Pick<RecipientResponse, 'receivedOn'>
-      & { person: (
+      ), sender?: Maybe<(
         { __typename?: 'PersonOutput' }
         & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
-      ) }
+      )>, recipients?: Maybe<Array<(
+        { __typename?: 'RecipientResponse' }
+        & Pick<RecipientResponse, 'receivedOn'>
+        & { person: (
+          { __typename?: 'PersonOutput' }
+          & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
+        ) }
+      )>> }
     )> }
-  )> }
+  ) }
 );
 
 export type AddPersonMutationVariables = Exact<{
@@ -379,7 +373,7 @@ export type AddPersonMutationVariables = Exact<{
 
 export type AddPersonMutation = (
   { __typename?: 'Mutation' }
-  & { addPerson?: Maybe<(
+  & { addPerson: (
     { __typename?: 'PersonResponse' }
     & { status: (
       { __typename?: 'StatusResponse' }
@@ -387,27 +381,16 @@ export type AddPersonMutation = (
     ), person?: Maybe<(
       { __typename?: 'PersonOutput' }
       & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
-    )>, address?: Maybe<(
-      { __typename?: 'Address' }
-      & Pick<Address, 'id' | 'address' | 'postalCode'>
-      & { country: (
-        { __typename?: 'Country' }
-        & Pick<Country, 'name'>
-      ) }
+      & { address?: Maybe<(
+        { __typename?: 'Address' }
+        & Pick<Address, 'id' | 'address' | 'postalCode'>
+        & { country: (
+          { __typename?: 'Country' }
+          & Pick<Country, 'name'>
+        ) }
+      )> }
     )> }
-  )> }
-);
-
-export type AddRecipientMutationVariables = Exact<{
-  document: Scalars['Int'];
-  recipient: Scalars['Int'];
-  receivedOn: Scalars['String'];
-}>;
-
-
-export type AddRecipientMutation = (
-  { __typename?: 'Mutation' }
-  & Pick<Mutation, 'addRecipient'>
+  ) }
 );
 
 export type CountriesQueryVariables = Exact<{ [key: string]: never; }>;
@@ -415,10 +398,16 @@ export type CountriesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type CountriesQuery = (
   { __typename?: 'Query' }
-  & { countries: Array<(
-    { __typename?: 'Country' }
-    & Pick<Country, 'countryNumber' | 'name' | 'isoName' | 'alpha2' | 'alpha3'>
-  )> }
+  & { countries: (
+    { __typename?: 'CountriesResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), countries: Array<(
+      { __typename?: 'Country' }
+      & Pick<Country, 'countryNumber' | 'name' | 'isoName' | 'alpha2' | 'alpha3'>
+    )> }
+  ) }
 );
 
 export type DeleteDocumentMutationVariables = Exact<{
@@ -434,6 +423,19 @@ export type DeleteDocumentMutation = (
   ) }
 );
 
+export type DeletePersonMutationVariables = Exact<{
+  id: Scalars['Int'];
+}>;
+
+
+export type DeletePersonMutation = (
+  { __typename?: 'Mutation' }
+  & { deletePerson: (
+    { __typename?: 'StatusResponse' }
+    & Pick<StatusResponse, 'status' | 'message'>
+  ) }
+);
+
 export type DocumentQueryVariables = Exact<{
   id: Scalars['Int'];
 }>;
@@ -441,31 +443,33 @@ export type DocumentQueryVariables = Exact<{
 
 export type DocumentQuery = (
   { __typename?: 'Query' }
-  & { document?: Maybe<(
+  & { document: (
     { __typename?: 'DocumentResponse' }
-    & Pick<DocumentResponse, 'sentOn'>
-    & { document: (
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), document?: Maybe<(
       { __typename?: 'DocumentOutput' }
-      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
+      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn' | 'sentOn'>
       & { docType: (
         { __typename?: 'DocumentType' }
         & Pick<DocumentType, 'id' | 'typeName'>
       ), recordedBy: (
         { __typename?: 'User' }
         & Pick<User, 'id' | 'username' | 'name' | 'email' | 'isClerk'>
-      ) }
-    ), sender: (
-      { __typename?: 'PersonOutput' }
-      & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
-    ), recipients: Array<(
-      { __typename?: 'RecipientResponse' }
-      & Pick<RecipientResponse, 'receivedOn'>
-      & { person: (
+      ), sender?: Maybe<(
         { __typename?: 'PersonOutput' }
         & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
-      ) }
+      )>, recipients?: Maybe<Array<(
+        { __typename?: 'RecipientResponse' }
+        & Pick<RecipientResponse, 'receivedOn'>
+        & { person: (
+          { __typename?: 'PersonOutput' }
+          & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
+        ) }
+      )>> }
     )> }
-  )> }
+  ) }
 );
 
 export type DocumentTypesQueryVariables = Exact<{ [key: string]: never; }>;
@@ -473,10 +477,16 @@ export type DocumentTypesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type DocumentTypesQuery = (
   { __typename?: 'Query' }
-  & { documentTypes: Array<(
-    { __typename?: 'DocumentType' }
-    & Pick<DocumentType, 'id' | 'typeName'>
-  )> }
+  & { documentTypes: (
+    { __typename?: 'DocumentTypesResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), docTypes: Array<(
+      { __typename?: 'DocumentType' }
+      & Pick<DocumentType, 'id' | 'typeName'>
+    )> }
+  ) }
 );
 
 export type DocumentsQueryVariables = Exact<{ [key: string]: never; }>;
@@ -484,39 +494,33 @@ export type DocumentsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type DocumentsQuery = (
   { __typename?: 'Query' }
-  & { documents: Array<(
-    { __typename?: 'DocumentResponse' }
-    & Pick<DocumentResponse, 'sentOn'>
-    & { document: (
+  & { documents: (
+    { __typename?: 'DocumentsResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), documents: Array<(
       { __typename?: 'DocumentOutput' }
-      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
+      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn' | 'sentOn'>
       & { docType: (
         { __typename?: 'DocumentType' }
         & Pick<DocumentType, 'id' | 'typeName'>
       ), recordedBy: (
         { __typename?: 'User' }
         & Pick<User, 'id' | 'username' | 'name' | 'email' | 'isClerk'>
-      ) }
-    ), sender: (
-      { __typename?: 'PersonOutput' }
-      & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
-    ), recipients: Array<(
-      { __typename?: 'RecipientResponse' }
-      & Pick<RecipientResponse, 'receivedOn'>
-      & { person: (
+      ), sender?: Maybe<(
         { __typename?: 'PersonOutput' }
         & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
-      ) }
+      )>, recipients?: Maybe<Array<(
+        { __typename?: 'RecipientResponse' }
+        & Pick<RecipientResponse, 'receivedOn'>
+        & { person: (
+          { __typename?: 'PersonOutput' }
+          & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
+        ) }
+      )>> }
     )> }
-  )> }
-);
-
-export type HelloQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type HelloQuery = (
-  { __typename?: 'Query' }
-  & Pick<Query, 'hello'>
+  ) }
 );
 
 export type LoginMutationVariables = Exact<{
@@ -529,8 +533,11 @@ export type LoginMutation = (
   { __typename?: 'Mutation' }
   & { login: (
     { __typename?: 'LoginResponse' }
-    & Pick<LoginResponse, 'status' | 'message' | 'accessToken'>
-    & { user?: Maybe<(
+    & Pick<LoginResponse, 'accessToken'>
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), user?: Maybe<(
       { __typename?: 'User' }
       & Pick<User, 'id' | 'name' | 'username' | 'email' | 'division' | 'isClerk'>
     )> }
@@ -550,10 +557,16 @@ export type MeQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type MeQuery = (
   { __typename?: 'Query' }
-  & { me?: Maybe<(
-    { __typename?: 'User' }
-    & Pick<User, 'id' | 'name' | 'username' | 'email' | 'division' | 'isClerk'>
-  )> }
+  & { me: (
+    { __typename?: 'UserResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), user?: Maybe<(
+      { __typename?: 'User' }
+      & Pick<User, 'id' | 'name' | 'username' | 'email' | 'division' | 'isClerk'>
+    )> }
+  ) }
 );
 
 export type PersonQueryVariables = Exact<{
@@ -565,16 +578,20 @@ export type PersonQuery = (
   { __typename?: 'Query' }
   & { person?: Maybe<(
     { __typename?: 'PersonResponse' }
-    & { person?: Maybe<(
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), person?: Maybe<(
       { __typename?: 'PersonOutput' }
       & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
-    )>, address?: Maybe<(
-      { __typename?: 'Address' }
-      & Pick<Address, 'address' | 'postalCode'>
-      & { country: (
-        { __typename?: 'Country' }
-        & Pick<Country, 'countryNumber' | 'name'>
-      ) }
+      & { address?: Maybe<(
+        { __typename?: 'Address' }
+        & Pick<Address, 'id' | 'address' | 'postalCode'>
+        & { country: (
+          { __typename?: 'Country' }
+          & Pick<Country, 'countryNumber' | 'name'>
+        ) }
+      )> }
     )> }
   )> }
 );
@@ -584,10 +601,16 @@ export type PersonNamesQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type PersonNamesQuery = (
   { __typename?: 'Query' }
-  & { personNames: Array<(
-    { __typename?: 'PersonNameResponse' }
-    & Pick<PersonNameResponse, 'id' | 'label'>
-  )> }
+  & { personNames: (
+    { __typename?: 'PersonNamesResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), personNames: Array<(
+      { __typename?: 'PersonNameOutput' }
+      & Pick<PersonNameOutput, 'id' | 'label'>
+    )> }
+  ) }
 );
 
 export type PersonsQueryVariables = Exact<{ [key: string]: never; }>;
@@ -595,20 +618,24 @@ export type PersonsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type PersonsQuery = (
   { __typename?: 'Query' }
-  & { persons: Array<(
-    { __typename?: 'PersonResponse' }
-    & { person?: Maybe<(
+  & { persons: (
+    { __typename?: 'PersonsResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), persons: Array<(
       { __typename?: 'PersonOutput' }
       & Pick<PersonOutput, 'id' | 'name' | 'rut' | 'division' | 'phone' | 'email'>
-    )>, address?: Maybe<(
-      { __typename?: 'Address' }
-      & Pick<Address, 'address' | 'postalCode'>
-      & { country: (
-        { __typename?: 'Country' }
-        & Pick<Country, 'countryNumber' | 'name'>
-      ) }
+      & { address?: Maybe<(
+        { __typename?: 'Address' }
+        & Pick<Address, 'address' | 'postalCode'>
+        & { country: (
+          { __typename?: 'Country' }
+          & Pick<Country, 'countryNumber' | 'name'>
+        ) }
+      )> }
     )> }
-  )> }
+  ) }
 );
 
 export type RegisterMutationVariables = Exact<{
@@ -621,8 +648,8 @@ export type RegisterMutationVariables = Exact<{
 export type RegisterMutation = (
   { __typename?: 'Mutation' }
   & { register: (
-    { __typename?: 'RegisterResponse' }
-    & Pick<RegisterResponse, 'status' | 'message'>
+    { __typename?: 'StatusResponse' }
+    & Pick<StatusResponse, 'status' | 'message'>
   ) }
 );
 
@@ -638,27 +665,29 @@ export type UpdateDocumentMutation = (
   { __typename?: 'Mutation' }
   & { updateDocument?: Maybe<(
     { __typename?: 'DocumentResponse' }
-    & Pick<DocumentResponse, 'sentOn'>
-    & { document: (
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), document?: Maybe<(
       { __typename?: 'DocumentOutput' }
-      & Pick<DocumentOutput, 'id' | 'docNumber' | 'subject' | 'writtenOn'>
+      & Pick<DocumentOutput, 'subject' | 'writtenOn' | 'sentOn'>
       & { docType: (
         { __typename?: 'DocumentType' }
         & Pick<DocumentType, 'id' | 'typeName'>
       ), recordedBy: (
         { __typename?: 'User' }
         & Pick<User, 'id' | 'name'>
-      ) }
-    ), sender: (
-      { __typename?: 'PersonOutput' }
-      & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
-    ), recipients: Array<(
-      { __typename?: 'RecipientResponse' }
-      & Pick<RecipientResponse, 'receivedOn'>
-      & { person: (
+      ), sender?: Maybe<(
         { __typename?: 'PersonOutput' }
         & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
-      ) }
+      )>, recipients?: Maybe<Array<(
+        { __typename?: 'RecipientResponse' }
+        & Pick<RecipientResponse, 'receivedOn'>
+        & { person: (
+          { __typename?: 'PersonOutput' }
+          & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
+        ) }
+      )>> }
     )> }
   )> }
 );
@@ -671,7 +700,7 @@ export type UpdatePersonMutationVariables = Exact<{
 
 export type UpdatePersonMutation = (
   { __typename?: 'Mutation' }
-  & { updatePerson?: Maybe<(
+  & { updatePerson: (
     { __typename?: 'PersonResponse' }
     & { status: (
       { __typename?: 'StatusResponse' }
@@ -680,12 +709,12 @@ export type UpdatePersonMutation = (
       { __typename?: 'PersonOutput' }
       & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
     )> }
-  )> }
+  ) }
 );
 
 export type UpdatePersonAndAddressMutationVariables = Exact<{
   person: Scalars['Int'];
-  perData: PersonUpdateInput;
+  data: PersonUpdateInput;
   address: Scalars['String'];
   postalCode?: Maybe<Scalars['String']>;
   country: Scalars['Int'];
@@ -694,7 +723,7 @@ export type UpdatePersonAndAddressMutationVariables = Exact<{
 
 export type UpdatePersonAndAddressMutation = (
   { __typename?: 'Mutation' }
-  & { updatePerson?: Maybe<(
+  & { updatePersonAndAddress: (
     { __typename?: 'PersonResponse' }
     & { status: (
       { __typename?: 'StatusResponse' }
@@ -702,19 +731,14 @@ export type UpdatePersonAndAddressMutation = (
     ), person?: Maybe<(
       { __typename?: 'PersonOutput' }
       & Pick<PersonOutput, 'id' | 'rut' | 'name' | 'division' | 'phone' | 'email'>
-    )> }
-  )>, updateAddress: (
-    { __typename?: 'PersonResponse' }
-    & { status: (
-      { __typename?: 'StatusResponse' }
-      & Pick<StatusResponse, 'status' | 'message'>
-    ), address?: Maybe<(
-      { __typename?: 'Address' }
-      & Pick<Address, 'id' | 'address' | 'postalCode'>
-      & { country: (
-        { __typename?: 'Country' }
-        & Pick<Country, 'countryNumber'>
-      ) }
+      & { address?: Maybe<(
+        { __typename?: 'Address' }
+        & Pick<Address, 'id' | 'address' | 'postalCode'>
+        & { country: (
+          { __typename?: 'Country' }
+          & Pick<Country, 'countryNumber'>
+        ) }
+      )> }
     )> }
   ) }
 );
@@ -724,10 +748,16 @@ export type UsersQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type UsersQuery = (
   { __typename?: 'Query' }
-  & { users: Array<(
-    { __typename?: 'User' }
-    & Pick<User, 'id' | 'name' | 'email'>
-  )> }
+  & { users: (
+    { __typename?: 'UsersResponse' }
+    & { status: (
+      { __typename?: 'StatusResponse' }
+      & Pick<StatusResponse, 'status' | 'message'>
+    ), users: Array<(
+      { __typename?: 'User' }
+      & Pick<User, 'id' | 'name' | 'email'>
+    )> }
+  ) }
 );
 
 
@@ -787,6 +817,10 @@ export const AddDocumentDocument = gql`
     sentOn: $sentOn
     recipients: $recipients
   ) {
+    status {
+      status
+      message
+    }
     document {
       id
       docNumber
@@ -800,18 +834,7 @@ export const AddDocumentDocument = gql`
         id
         name
       }
-    }
-    sender {
-      id
-      rut
-      name
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         rut
         name
@@ -819,7 +842,18 @@ export const AddDocumentDocument = gql`
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          rut
+          name
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }
@@ -876,13 +910,13 @@ export const AddPersonDocument = gql`
       division
       phone
       email
-    }
-    address {
-      id
-      address
-      postalCode
-      country {
-        name
+      address {
+        id
+        address
+        postalCode
+        country {
+          name
+        }
       }
     }
   }
@@ -918,50 +952,20 @@ export function useAddPersonMutation(baseOptions?: Apollo.MutationHookOptions<Ad
 export type AddPersonMutationHookResult = ReturnType<typeof useAddPersonMutation>;
 export type AddPersonMutationResult = Apollo.MutationResult<AddPersonMutation>;
 export type AddPersonMutationOptions = Apollo.BaseMutationOptions<AddPersonMutation, AddPersonMutationVariables>;
-export const AddRecipientDocument = gql`
-    mutation AddRecipient($document: Int!, $recipient: Int!, $receivedOn: String!) {
-  addRecipient(
-    document: $document
-    recipient: $recipient
-    receivedOn: $receivedOn
-  )
-}
-    `;
-export type AddRecipientMutationFn = Apollo.MutationFunction<AddRecipientMutation, AddRecipientMutationVariables>;
-
-/**
- * __useAddRecipientMutation__
- *
- * To run a mutation, you first call `useAddRecipientMutation` within a React component and pass it any options that fit your needs.
- * When your component renders, `useAddRecipientMutation` returns a tuple that includes:
- * - A mutate function that you can call at any time to execute the mutation
- * - An object with fields that represent the current status of the mutation's execution
- *
- * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
- *
- * @example
- * const [addRecipientMutation, { data, loading, error }] = useAddRecipientMutation({
- *   variables: {
- *      document: // value for 'document'
- *      recipient: // value for 'recipient'
- *      receivedOn: // value for 'receivedOn'
- *   },
- * });
- */
-export function useAddRecipientMutation(baseOptions?: Apollo.MutationHookOptions<AddRecipientMutation, AddRecipientMutationVariables>) {
-        return Apollo.useMutation<AddRecipientMutation, AddRecipientMutationVariables>(AddRecipientDocument, baseOptions);
-      }
-export type AddRecipientMutationHookResult = ReturnType<typeof useAddRecipientMutation>;
-export type AddRecipientMutationResult = Apollo.MutationResult<AddRecipientMutation>;
-export type AddRecipientMutationOptions = Apollo.BaseMutationOptions<AddRecipientMutation, AddRecipientMutationVariables>;
 export const CountriesDocument = gql`
     query Countries {
   countries {
-    countryNumber
-    name
-    isoName
-    alpha2
-    alpha3
+    status {
+      status
+      message
+    }
+    countries {
+      countryNumber
+      name
+      isoName
+      alpha2
+      alpha3
+    }
   }
 }
     `;
@@ -1023,9 +1027,46 @@ export function useDeleteDocumentMutation(baseOptions?: Apollo.MutationHookOptio
 export type DeleteDocumentMutationHookResult = ReturnType<typeof useDeleteDocumentMutation>;
 export type DeleteDocumentMutationResult = Apollo.MutationResult<DeleteDocumentMutation>;
 export type DeleteDocumentMutationOptions = Apollo.BaseMutationOptions<DeleteDocumentMutation, DeleteDocumentMutationVariables>;
+export const DeletePersonDocument = gql`
+    mutation DeletePerson($id: Int!) {
+  deletePerson(id: $id) {
+    status
+    message
+  }
+}
+    `;
+export type DeletePersonMutationFn = Apollo.MutationFunction<DeletePersonMutation, DeletePersonMutationVariables>;
+
+/**
+ * __useDeletePersonMutation__
+ *
+ * To run a mutation, you first call `useDeletePersonMutation` within a React component and pass it any options that fit your needs.
+ * When your component renders, `useDeletePersonMutation` returns a tuple that includes:
+ * - A mutate function that you can call at any time to execute the mutation
+ * - An object with fields that represent the current status of the mutation's execution
+ *
+ * @param baseOptions options that will be passed into the mutation, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options-2;
+ *
+ * @example
+ * const [deletePersonMutation, { data, loading, error }] = useDeletePersonMutation({
+ *   variables: {
+ *      id: // value for 'id'
+ *   },
+ * });
+ */
+export function useDeletePersonMutation(baseOptions?: Apollo.MutationHookOptions<DeletePersonMutation, DeletePersonMutationVariables>) {
+        return Apollo.useMutation<DeletePersonMutation, DeletePersonMutationVariables>(DeletePersonDocument, baseOptions);
+      }
+export type DeletePersonMutationHookResult = ReturnType<typeof useDeletePersonMutation>;
+export type DeletePersonMutationResult = Apollo.MutationResult<DeletePersonMutation>;
+export type DeletePersonMutationOptions = Apollo.BaseMutationOptions<DeletePersonMutation, DeletePersonMutationVariables>;
 export const DocumentDocument = gql`
     query Document($id: Int!) {
   document(id: $id) {
+    status {
+      status
+      message
+    }
     document {
       id
       docType {
@@ -1042,18 +1083,7 @@ export const DocumentDocument = gql`
         email
         isClerk
       }
-    }
-    sender {
-      id
-      name
-      rut
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         name
         rut
@@ -1061,7 +1091,18 @@ export const DocumentDocument = gql`
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          name
+          rut
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }
@@ -1095,8 +1136,14 @@ export type DocumentQueryResult = Apollo.QueryResult<DocumentQuery, DocumentQuer
 export const DocumentTypesDocument = gql`
     query DocumentTypes {
   documentTypes {
-    id
-    typeName
+    status {
+      status
+      message
+    }
+    docTypes {
+      id
+      typeName
+    }
   }
 }
     `;
@@ -1128,7 +1175,11 @@ export type DocumentTypesQueryResult = Apollo.QueryResult<DocumentTypesQuery, Do
 export const DocumentsDocument = gql`
     query Documents {
   documents {
-    document {
+    status {
+      status
+      message
+    }
+    documents {
       id
       docType {
         id
@@ -1144,18 +1195,7 @@ export const DocumentsDocument = gql`
         email
         isClerk
       }
-    }
-    sender {
-      id
-      name
-      rut
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         name
         rut
@@ -1163,7 +1203,18 @@ export const DocumentsDocument = gql`
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          name
+          rut
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }
@@ -1193,41 +1244,13 @@ export function useDocumentsLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<
 export type DocumentsQueryHookResult = ReturnType<typeof useDocumentsQuery>;
 export type DocumentsLazyQueryHookResult = ReturnType<typeof useDocumentsLazyQuery>;
 export type DocumentsQueryResult = Apollo.QueryResult<DocumentsQuery, DocumentsQueryVariables>;
-export const HelloDocument = gql`
-    query Hello {
-  hello
-}
-    `;
-
-/**
- * __useHelloQuery__
- *
- * To run a query within a React component, call `useHelloQuery` and pass it any options that fit your needs.
- * When your component renders, `useHelloQuery` returns an object from Apollo Client that contains loading, error, and data properties
- * you can use to render your UI.
- *
- * @param baseOptions options that will be passed into the query, supported options are listed on: https://www.apollographql.com/docs/react/api/react-hooks/#options;
- *
- * @example
- * const { data, loading, error } = useHelloQuery({
- *   variables: {
- *   },
- * });
- */
-export function useHelloQuery(baseOptions?: Apollo.QueryHookOptions<HelloQuery, HelloQueryVariables>) {
-        return Apollo.useQuery<HelloQuery, HelloQueryVariables>(HelloDocument, baseOptions);
-      }
-export function useHelloLazyQuery(baseOptions?: Apollo.LazyQueryHookOptions<HelloQuery, HelloQueryVariables>) {
-          return Apollo.useLazyQuery<HelloQuery, HelloQueryVariables>(HelloDocument, baseOptions);
-        }
-export type HelloQueryHookResult = ReturnType<typeof useHelloQuery>;
-export type HelloLazyQueryHookResult = ReturnType<typeof useHelloLazyQuery>;
-export type HelloQueryResult = Apollo.QueryResult<HelloQuery, HelloQueryVariables>;
 export const LoginDocument = gql`
     mutation Login($email: String!, $password: String!) {
   login(email: $email, password: $password) {
-    status
-    message
+    status {
+      status
+      message
+    }
     user {
       id
       name
@@ -1298,12 +1321,18 @@ export type LogoutMutationOptions = Apollo.BaseMutationOptions<LogoutMutation, L
 export const MeDocument = gql`
     query Me {
   me {
-    id
-    name
-    username
-    email
-    division
-    isClerk
+    status {
+      status
+      message
+    }
+    user {
+      id
+      name
+      username
+      email
+      division
+      isClerk
+    }
   }
 }
     `;
@@ -1335,6 +1364,10 @@ export type MeQueryResult = Apollo.QueryResult<MeQuery, MeQueryVariables>;
 export const PersonDocument = gql`
     query Person($id: Int!) {
   person(id: $id) {
+    status {
+      status
+      message
+    }
     person {
       id
       name
@@ -1342,13 +1375,14 @@ export const PersonDocument = gql`
       division
       phone
       email
-    }
-    address {
-      address
-      postalCode
-      country {
-        countryNumber
-        name
+      address {
+        id
+        address
+        postalCode
+        country {
+          countryNumber
+          name
+        }
       }
     }
   }
@@ -1383,8 +1417,14 @@ export type PersonQueryResult = Apollo.QueryResult<PersonQuery, PersonQueryVaria
 export const PersonNamesDocument = gql`
     query PersonNames {
   personNames {
-    id
-    label
+    status {
+      status
+      message
+    }
+    personNames {
+      id
+      label
+    }
   }
 }
     `;
@@ -1416,20 +1456,24 @@ export type PersonNamesQueryResult = Apollo.QueryResult<PersonNamesQuery, Person
 export const PersonsDocument = gql`
     query Persons {
   persons {
-    person {
+    status {
+      status
+      message
+    }
+    persons {
       id
       name
       rut
       division
       phone
       email
-    }
-    address {
-      address
-      postalCode
-      country {
-        countryNumber
-        name
+      address {
+        address
+        postalCode
+        country {
+          countryNumber
+          name
+        }
       }
     }
   }
@@ -1503,9 +1547,11 @@ export const UpdateDocumentDocument = gql`
     sender: $sender
     recipients: $recipients
   ) {
+    status {
+      status
+      message
+    }
     document {
-      id
-      docNumber
       subject
       writtenOn
       docType {
@@ -1516,18 +1562,7 @@ export const UpdateDocumentDocument = gql`
         id
         name
       }
-    }
-    sender {
-      id
-      rut
-      name
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         rut
         name
@@ -1535,7 +1570,18 @@ export const UpdateDocumentDocument = gql`
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          rut
+          name
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }
@@ -1613,8 +1659,14 @@ export type UpdatePersonMutationHookResult = ReturnType<typeof useUpdatePersonMu
 export type UpdatePersonMutationResult = Apollo.MutationResult<UpdatePersonMutation>;
 export type UpdatePersonMutationOptions = Apollo.BaseMutationOptions<UpdatePersonMutation, UpdatePersonMutationVariables>;
 export const UpdatePersonAndAddressDocument = gql`
-    mutation UpdatePersonAndAddress($person: Int!, $perData: PersonUpdateInput!, $address: String!, $postalCode: String, $country: Int!) {
-  updatePerson(perId: $person, data: $perData) {
+    mutation UpdatePersonAndAddress($person: Int!, $data: PersonUpdateInput!, $address: String!, $postalCode: String, $country: Int!) {
+  updatePersonAndAddress(
+    person: $person
+    data: $data
+    address: $address
+    postalCode: $postalCode
+    country: $country
+  ) {
     status {
       status
       message
@@ -1626,24 +1678,13 @@ export const UpdatePersonAndAddressDocument = gql`
       division
       phone
       email
-    }
-  }
-  updateAddress(
-    person: $person
-    address: $address
-    postalCode: $postalCode
-    country: $country
-  ) {
-    status {
-      status
-      message
-    }
-    address {
-      id
-      address
-      postalCode
-      country {
-        countryNumber
+      address {
+        id
+        address
+        postalCode
+        country {
+          countryNumber
+        }
       }
     }
   }
@@ -1665,7 +1706,7 @@ export type UpdatePersonAndAddressMutationFn = Apollo.MutationFunction<UpdatePer
  * const [updatePersonAndAddressMutation, { data, loading, error }] = useUpdatePersonAndAddressMutation({
  *   variables: {
  *      person: // value for 'person'
- *      perData: // value for 'perData'
+ *      data: // value for 'data'
  *      address: // value for 'address'
  *      postalCode: // value for 'postalCode'
  *      country: // value for 'country'
@@ -1681,9 +1722,15 @@ export type UpdatePersonAndAddressMutationOptions = Apollo.BaseMutationOptions<U
 export const UsersDocument = gql`
     query Users {
   users {
-    id
-    name
-    email
+    status {
+      status
+      message
+    }
+    users {
+      id
+      name
+      email
+    }
   }
 }
     `;

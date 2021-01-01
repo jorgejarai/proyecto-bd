@@ -7,9 +7,7 @@ import {
   Field,
   Ctx,
   UseMiddleware,
-  Int,
 } from 'type-graphql';
-import { getConnection } from 'typeorm';
 import { verify } from 'jsonwebtoken';
 import { hash, compare } from 'bcryptjs';
 import { User } from '../entity/User';
@@ -18,74 +16,107 @@ import { createRefreshToken, createAccessToken } from '../auth';
 import { isAuth } from '../isAuth';
 import { sendRefreshToken } from '../sendRefreshToken';
 import { userRegistrationSchema, userLoginSchema } from '../schema';
+import { StatusResponse } from '../StatusResponse';
 
 @ObjectType()
 class LoginResponse {
-  @Field()
-  status: string;
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
   @Field(() => String, { nullable: true })
   accessToken?: string;
+
   @Field(() => User, { nullable: true })
   user?: User;
-  @Field({ nullable: true })
-  message?: string;
 }
 
 @ObjectType()
-class RegisterResponse {
-  @Field()
-  status: string;
-  @Field({ nullable: true })
-  message?: string;
+class UserResponse {
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
+  @Field(() => User, { nullable: true })
+  user?: User;
+}
+
+@ObjectType()
+class UsersResponse {
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
+  @Field(() => [User])
+  users: User[];
 }
 
 @Resolver()
 export class UserResolver {
-  @Query(() => String)
-  hello() {
-    return 'hi!';
-  }
-
-  @Query(() => String)
+  @Query(() => UsersResponse)
   @UseMiddleware(isAuth)
-  bye(@Ctx() { payload }: Context) {
-    return `your user id is: ${payload!.userId}`;
+  async users(): Promise<UsersResponse> {
+    let ret: UsersResponse = {
+      status: {
+        status: 'error',
+        message: 'Could not get users',
+      },
+      users: [],
+    };
+
+    try {
+      const users = await User.find();
+
+      ret = {
+        status: {
+          status: 'ok',
+        },
+        users,
+      };
+    } catch (e) {
+      console.log(e);
+    }
+
+    return ret;
   }
 
-  @Query(() => [User])
-  @UseMiddleware(isAuth)
-  users() {
-    return User.find();
-  }
+  @Query(() => UserResponse)
+  async me(@Ctx() context: Context): Promise<UserResponse> {
+    const ret: UserResponse = {
+      status: {
+        status: 'error',
+        message: 'Could not get user info',
+      },
+    };
 
-  @Query(() => User, { nullable: true })
-  me(@Ctx() context: Context) {
     const authorization = context.req.headers['authorization'];
 
     if (!authorization) {
-      return null;
+      return ret;
     }
 
     try {
       const token = authorization.split(' ')[1];
       const payload: any = verify(token, process.env.ACCESS_TOKEN_SECRET!);
 
-      return User.findOne(payload.userId);
-    } catch (err) {
-      console.log(err);
-      return null;
+      return {
+        status: {
+          status: 'ok',
+        },
+        user: await User.findOne(payload.userId),
+      };
+    } catch (e) {
+      console.log(e);
+      return ret;
     }
   }
 
   // no usar en producción
-  @Mutation(() => Boolean)
-  async revokeRefreshTokens(@Arg('userId', () => Int) userId: number) {
-    await getConnection()
-      .getRepository(User)
-      .increment({ id: userId }, 'tokenVersion', 1);
-
-    return true;
-  }
+  // @Mutation(() => Boolean)
+  // async revokeRefreshTokens(@Arg('userId', () => Int) userId: number) {
+  //   await getConnection()
+  //     .getRepository(User)
+  //     .increment({ id: userId }, 'tokenVersion', 1);
+  //
+  //   return true;
+  // }
 
   @Mutation(() => Boolean)
   async logout(@Ctx() { res }: Context) {
@@ -100,45 +131,65 @@ export class UserResolver {
     @Arg('password') password: string,
     @Ctx() { res }: Context
   ): Promise<LoginResponse> {
-    userLoginSchema.validate({ email, password }).catch(() => {
+    try {
+      userLoginSchema.validate({ email, password }).catch(() => {
+        return {
+          status: {
+            status: 'error',
+            message: 'Invalid format',
+          },
+        };
+      });
+
+      const user = await User.findOne({ where: { email } });
+
+      if (!user) {
+        return {
+          status: {
+            status: 'error',
+            message: 'Invalid user or password',
+          },
+        };
+      }
+
+      const validPassword = await compare(password, user.password);
+
+      if (!validPassword) {
+        return {
+          status: {
+            status: 'error',
+            message: 'Invalid user or password',
+          },
+        };
+      }
+
+      sendRefreshToken(res, createRefreshToken(user));
+
       return {
-        status: 'error',
+        status: {
+          status: 'ok',
+        },
+        accessToken: createAccessToken(user),
+        user,
       };
-    });
+    } catch (e) {
+      console.log(e);
 
-    const user = await User.findOne({ where: { email } });
-
-    if (!user) {
       return {
-        status: 'error',
-        message: 'Invalid user or password',
+        status: {
+          status: 'error',
+          message: 'Could not log in',
+        },
       };
     }
-
-    const validPassword = await compare(password, user.password);
-
-    if (!validPassword) {
-      return {
-        status: 'error',
-        message: 'Invalid user or password',
-      };
-    }
-
-    sendRefreshToken(res, createRefreshToken(user));
-
-    return {
-      status: 'ok',
-      accessToken: createAccessToken(user),
-      user,
-    };
   }
 
-  @Mutation(() => RegisterResponse)
+  @Mutation(() => StatusResponse)
   async register(
     @Arg('email') email: string,
     @Arg('name') name: string,
     @Arg('password') password: string
-  ): Promise<RegisterResponse> {
+  ): Promise<StatusResponse> {
     userRegistrationSchema
       .validate({
         email,
@@ -168,10 +219,9 @@ export class UserResolver {
         };
       }
     }
+
     return {
       status: 'ok',
     };
   }
 }
-
-// vim: ts=2 sw=2 et

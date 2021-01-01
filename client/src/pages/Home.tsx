@@ -40,7 +40,7 @@ export const Home: React.FC<Props> = () => {
           </tr>
         </thead>
         <tbody>
-          {data.users.map(({ id, name, email }) => (
+          {data.users.users.map(({ id, name, email }) => (
             <tr>
               <td>{id}</td>
               <td>{name}</td>

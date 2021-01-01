@@ -10,9 +10,11 @@ mutation UpdateDocument(
     sender: $sender
     recipients: $recipients
   ) {
+    status {
+      status
+      message
+    }
     document {
-      id
-      docNumber
       subject
       writtenOn
       docType {
@@ -23,18 +25,7 @@ mutation UpdateDocument(
         id
         name
       }
-    }
-    sender {
-      id
-      rut
-      name
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         rut
         name
@@ -42,7 +33,18 @@ mutation UpdateDocument(
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          rut
+          name
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }

@@ -25,13 +25,13 @@ mutation AddPerson(
       division
       phone
       email
-    }
-    address {
-      id
-      address
-      postalCode
-      country {
-        name
+      address {
+        id
+        address
+        postalCode
+        country {
+          name
+        }
       }
     }
   }

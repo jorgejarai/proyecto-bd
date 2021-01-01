@@ -58,7 +58,7 @@ export const PersonSettings: React.FC<Props> = ({
     );
   }
 
-  const initialPerson = data.personNames.find(
+  const initialPerson = data.personNames.personNames.find(
     (person) => person.id === recipient
   );
   const initialPersonLabel = initialPerson ? initialPerson.label : '';

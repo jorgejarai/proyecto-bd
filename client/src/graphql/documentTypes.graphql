@@ -1,6 +1,12 @@
 query DocumentTypes {
   documentTypes {
-    id
-    typeName
+    status {
+      status
+      message
+    }
+    docTypes {
+      id
+      typeName
+    }
   }
 }

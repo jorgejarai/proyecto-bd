@@ -127,14 +127,14 @@ export const Persons: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {perData.persons.map((person) => {
-              if (!person || !person.person || !person.address) return null;
+            {perData.persons.persons.map((person) => {
+              if (!person || !person || !person.address) return null;
 
-              const { id, rut, name, division, phone, email } = person.person;
+              const { id, rut, name, division, phone, email } = person;
               const { address, country } = person.address;
 
               if (search.length !== 0) {
-                const searchAttribute = person.person[
+                const searchAttribute = person[
                   searchCriterion.criterion
                 ]?.toLocaleString();
 

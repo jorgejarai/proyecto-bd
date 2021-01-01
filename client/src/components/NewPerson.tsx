@@ -79,7 +79,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
           const addressId = addressResponse.data.addAddress.address?.id;
 
           if (!addressId) {
-            return null;
+            return;
           }
 
           const personResponse = await addPerson({
@@ -97,12 +97,17 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
               const persons: any = cache.readQuery({
                 query: PersonsDocument,
               });
-              const newPerson = data.addPerson;
+              const newPerson = data.addPerson?.person;
 
               cache.writeQuery<PersonsQuery>({
                 query: PersonsDocument,
                 data: {
-                  persons: [...persons.persons, newPerson],
+                  persons: {
+                    status: {
+                      status: 'ok',
+                    },
+                    persons: [...persons.persons.persons, newPerson],
+                  },
                 },
               });
 
@@ -191,7 +196,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                       as="select"
                       name="country"
                       onChange={(event) => {
-                        const newCountry = countryData.countries.find(
+                        const newCountry = countryData.countries.countries.find(
                           ({ countryNumber }) =>
                             '' + countryNumber === event.target.value
                         );
@@ -202,7 +207,7 @@ export const NewPerson: React.FC<Props> = ({ show, setShow, countryData }) => {
                       }}
                       isInvalid={!!errors.country}
                     >
-                      {countryData.countries.map((country) => (
+                      {countryData.countries.countries.map((country) => (
                         <option
                           key={country.countryNumber}
                           value={country.countryNumber}

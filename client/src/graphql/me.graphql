@@ -1,10 +1,16 @@
 query Me {
   me {
-    id
-    name
-    username
-    email
-    division
-    isClerk
+    status {
+      status
+      message
+    }
+    user {
+      id
+      name
+      username
+      email
+      division
+      isClerk
+    }
   }
 }

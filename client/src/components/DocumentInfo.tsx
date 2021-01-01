@@ -88,12 +88,15 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
     docError ||
     !docData ||
     !docData.document ||
+    docData.document.status.status === 'error' ||
     docTypesError ||
     !docTypesData ||
     !docTypesData.documentTypes ||
+    docTypesData.documentTypes.status.status === 'error' ||
     perError ||
     !perData ||
-    !perData.personNames
+    !perData.personNames ||
+    perData.personNames.status.status === 'error'
   ) {
     return (
       <Modal show={show} onHide={() => setShow(false)}>
@@ -110,29 +113,30 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
     );
   }
 
-  const { document: doc, sender, recipients, sentOn } = docData.document;
+  const doc = docData.document.document;
 
   const initialValues: FormInitialValues = {
-    docType: doc.docType.id,
-    docNumber: doc.docNumber,
-    subject: doc.subject,
-    hasWritingDate: !!doc.writtenOn,
-    writtenOn: doc.writtenOn ? new Date(doc.writtenOn) : null,
-    sender: sender.id,
-    hasSendingDate: !!sentOn,
-    sentOn: sentOn ? new Date(sentOn) : null,
-    recipients: recipients.map((rec) => ({
+    docType: doc?.docType.id!,
+    docNumber: doc?.docNumber,
+    subject: doc?.subject!,
+    hasWritingDate: !!doc?.writtenOn,
+    writtenOn: doc?.writtenOn ? new Date(doc.writtenOn) : null,
+    sender: doc?.sender?.id!,
+    hasSendingDate: !!doc?.sentOn,
+    sentOn: doc?.sentOn ? new Date(doc?.sentOn) : null,
+    recipients: doc?.recipients?.map((rec) => ({
       id: rec.person.id,
       date: new Date(rec.receivedOn),
-    })),
+    }))!,
     hasFiles: false,
     files: [],
     newRecipient: null,
     newRecipientDate: new Date(),
   };
 
-  const senderName = perData.personNames.find((per) => per.id === sender.id)!
-    .label;
+  const senderName = perData.personNames.personNames.find(
+    (per) => per.id === doc?.sender?.id!
+  )!.label;
 
   return (
     <>
@@ -184,7 +188,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                 const cachedDocuments: any = cache.readQuery({
                   query: DocumentsDocument,
                 });
-                let documentsList = cachedDocuments.documents.filter(
+                let documentsList = cachedDocuments.documents.documents.filter(
                   (doc: any) => doc.id !== docId
                 );
                 const modifiedDocument = data.updateDocument;
@@ -192,7 +196,12 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                 cache.writeQuery<DocumentsQuery>({
                   query: DocumentsDocument,
                   data: {
-                    documents: [...documentsList, modifiedDocument],
+                    documents: {
+                      status: {
+                        status: 'ok',
+                      },
+                      documents: [...documentsList, modifiedDocument],
+                    },
                   },
                 });
 
@@ -225,7 +234,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                         as="select"
                         name="docType"
                         onChange={(event) => {
-                          const newDocType = docTypesData.documentTypes.find(
+                          const newDocType = docTypesData.documentTypes.docTypes.find(
                             ({ id }) => '' + id === event.target.value
                           );
 
@@ -234,11 +243,11 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                           else setFieldValue('docType', 7);
                         }}
                       >
-                        {docTypesData.documentTypes.map((docType) => (
+                        {docTypesData.documentTypes.docTypes.map((docType) => (
                           <option
                             key={docType.id}
                             value={docType.id}
-                            selected={doc.docType.id === docType.id}
+                            selected={doc!.docType.id === docType.id}
                           >
                             {docType.typeName}
                           </option>
@@ -333,7 +342,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                         name="sender"
                         labelKey="label"
                         as={Typeahead}
-                        options={perData.personNames}
+                        options={perData.personNames.personNames}
                         onChange={(selected: any[]) => {
                           const sender = selected[0] ? selected[0].id : null;
                           setFieldValue('sender', sender);
@@ -360,7 +369,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                           {values.recipients.map(({ id, date }) => {
                             if (!id) return null;
 
-                            const personEntry = perData.personNames.find(
+                            const personEntry = perData.personNames.personNames.find(
                               (person) => id === person.id
                             );
 
@@ -401,7 +410,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                         placeholder="Type a new recipient here"
                         id="new-recipient"
                         labelKey="label"
-                        options={perData.personNames}
+                        options={perData.personNames.personNames}
                         onChange={(selected: any[]) => {
                           const newRecipient = selected[0]
                             ? selected[0].id

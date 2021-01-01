@@ -10,7 +10,7 @@ import {
   InputType,
 } from 'type-graphql';
 import { isAuth } from '../isAuth';
-import { getConnection, getRepository } from 'typeorm';
+import { getConnection } from 'typeorm';
 import { Document } from '../entity/Document';
 import { DocumentType } from '../entity/DocumentType';
 import { DocumentPerson } from '../entity/DocumentPerson';
@@ -43,24 +43,45 @@ class DocumentOutput {
 
   @Field(() => User)
   recordedBy: User;
-}
 
-@ObjectType()
-class DocumentResponse {
-  @Field(() => DocumentOutput)
-  document: DocumentOutput;
-
-  @Field(() => PersonOutput)
-  sender: PersonOutput;
+  @Field(() => PersonOutput, { nullable: true })
+  sender?: PersonOutput;
 
   @Field(() => String, { nullable: true })
   sentOn?: string;
 
-  @Field(() => [RecipientResponse])
-  recipients: RecipientResponse[];
+  @Field(() => [RecipientResponse], { nullable: true })
+  recipients?: RecipientResponse[];
 
-  @Field(() => [File])
-  files: File[];
+  @Field(() => [File], { nullable: true })
+  files?: File[];
+}
+
+@ObjectType()
+class DocumentResponse {
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
+  @Field(() => DocumentOutput, { nullable: true })
+  document?: DocumentOutput;
+}
+
+@ObjectType()
+class DocumentsResponse {
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
+  @Field(() => [DocumentOutput])
+  documents: DocumentOutput[];
+}
+
+@ObjectType()
+class DocumentTypesResponse {
+  @Field(() => StatusResponse)
+  status: StatusResponse;
+
+  @Field(() => [DocumentType])
+  docTypes: DocumentType[];
 }
 
 @ObjectType()
@@ -101,36 +122,185 @@ class DocumentUpdateInput {
 
 @Resolver()
 export class DocumentResolver {
-  @Query(() => [DocumentResponse])
+  @Query(() => DocumentsResponse)
   @UseMiddleware(isAuth)
-  async documents(): Promise<DocumentResponse[] | null | undefined> {
-    const repeatedDocs = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .select('max(dp.id)', 'id')
-      .groupBy('document')
-      .getRawMany();
+  async documents(): Promise<DocumentsResponse> {
+    let ret: DocumentsResponse = {
+      status: {
+        status: 'error',
+        message: 'Could not get documents',
+      },
+      documents: [],
+    };
 
-    if (repeatedDocs.length === 0) return [];
+    const queryRunner = getConnection().createQueryRunner();
+    await queryRunner.connect();
 
-    let repeatedIds: number[] = [];
-    for (let repeatedDoc of repeatedDocs) {
-      repeatedIds = [...repeatedIds, repeatedDoc.id];
+    await queryRunner.startTransaction();
+
+    try {
+      const repeatedDocs = await queryRunner.manager
+        .getRepository(DocumentPerson)
+        .createQueryBuilder('dp')
+        .select('max(dp.id)', 'id')
+        .groupBy('document')
+        .getRawMany();
+
+      if (repeatedDocs.length === 0) {
+        await queryRunner.rollbackTransaction();
+        await queryRunner.release();
+
+        return {
+          status: { status: 'ok' },
+          documents: [],
+        };
+      }
+
+      let repeatedIds: number[] = [];
+      for (let repeatedDoc of repeatedDocs) {
+        repeatedIds = [...repeatedIds, repeatedDoc.id];
+      }
+
+      const results = await queryRunner.manager
+        .getRepository(DocumentPerson)
+        .createQueryBuilder('dp')
+        .leftJoinAndSelect('dp.document', 'doc')
+        .leftJoinAndSelect('doc.docType', 'doct')
+        .leftJoinAndSelect('doc.sender', 'sen')
+        .leftJoinAndSelect('doc.files', 'files')
+        .leftJoinAndSelect('doc.recordedBy', 'recor')
+        .where('dp.id in (:...ids)', { ids: repeatedIds })
+        .getMany();
+
+      for (let result of results) {
+        const recipientsResult = await queryRunner.manager
+          .getRepository(DocumentPerson)
+          .createQueryBuilder('dp')
+          .where('dp.document = :docId', { docId: result.document.id })
+          .leftJoinAndSelect('dp.recipient', 'recip')
+          .getMany();
+
+        let recipients: RecipientResponse[] = [];
+        for (let { recipient } of recipientsResult) {
+          const { id, rutNum, rutDv, name, division, phone, email } = recipient;
+          recipients = [
+            ...recipients,
+            {
+              person: {
+                id,
+                name,
+                division,
+                phone,
+                email,
+                rut: `${rutNum}-${rutDv}`,
+              },
+              receivedOn: result.receivedOn,
+            },
+          ];
+        }
+
+        const { document: doc } = result;
+        const { id, rutNum, rutDv, name, division, phone, email } = doc.sender;
+
+        ret.documents = [
+          ...ret.documents,
+          {
+            ...doc,
+            sender: {
+              id,
+              name,
+              division,
+              phone,
+              email,
+              rut: `${rutNum}-${rutDv}`,
+            },
+            sentOn: result.document.sentOn,
+            recipients: recipients,
+            files: doc.files,
+          },
+        ];
+      }
+
+      ret.status = {
+        status: 'ok',
+      };
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      console.log(e);
+
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
     }
 
-    const results = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .leftJoinAndSelect('dp.document', 'doc')
-      .leftJoinAndSelect('doc.docType', 'doct')
-      .leftJoinAndSelect('doc.sender', 'sen')
-      .leftJoinAndSelect('doc.files', 'files')
-      .leftJoinAndSelect('doc.recordedBy', 'recor')
-      .where('dp.id in (:...ids)', { ids: repeatedIds })
-      .getMany();
+    return ret;
+  }
 
-    let ret: DocumentResponse[] = [];
+  @Query(() => DocumentResponse)
+  @UseMiddleware(isAuth)
+  async document(@Arg('id', () => Int) id: number): Promise<DocumentResponse> {
+    let ret: DocumentResponse = {
+      status: {
+        status: 'error',
+        message: 'Could not get document',
+      },
+    };
 
-    for (let result of results) {
-      const recipientsResult = await getRepository(DocumentPerson)
+    const queryRunner = getConnection().createQueryRunner();
+    await queryRunner.connect();
+
+    await queryRunner.startTransaction();
+
+    try {
+      const repeatedDocs = await queryRunner.manager
+        .getRepository(DocumentPerson)
+        .createQueryBuilder('dp')
+        .select('max(dp.id)', 'id')
+        .where('dp.document = :id', { id })
+        .groupBy('document')
+        .getRawMany();
+
+      if (!repeatedDocs || repeatedDocs.length === 0) {
+        ret = {
+          status: {
+            status: 'error',
+            message: 'Document not found',
+          },
+        };
+
+        throw new Error('Document not found');
+      }
+
+      let repeatedIds: number[] = [];
+      for (let repeatedDoc of repeatedDocs) {
+        repeatedIds = [...repeatedIds, repeatedDoc.id];
+      }
+
+      const result = await queryRunner.manager
+        .getRepository(DocumentPerson)
+        .createQueryBuilder('dp')
+        .leftJoinAndSelect('dp.document', 'doc')
+        .leftJoinAndSelect('doc.docType', 'doct')
+        .leftJoinAndSelect('doc.sender', 'sen')
+        .leftJoinAndSelect('doc.files', 'files')
+        .leftJoinAndSelect('doc.recordedBy', 'rec')
+        .where('dp.id in (:...ids)', { ids: repeatedIds })
+        .andWhere('dp.document = :id', { id })
+        .getOne();
+
+      if (!result) {
+        ret = {
+          status: {
+            status: 'error',
+            message: 'Invalid document',
+          },
+        };
+
+        throw new Error('Invalid document');
+      }
+
+      const recipientsResult = await queryRunner.manager
+        .getRepository(DocumentPerson)
         .createQueryBuilder('dp')
         .where('dp.document = :docId', { docId: result.document.id })
         .leftJoinAndSelect('dp.recipient', 'recip')
@@ -156,14 +326,24 @@ export class DocumentResolver {
       }
 
       const { document: doc } = result;
-      const { id, rutNum, rutDv, name, division, phone, email } = doc.sender;
+      const {
+        id: senderId,
+        rutNum,
+        rutDv,
+        name,
+        division,
+        phone,
+        email,
+      } = doc.sender;
 
-      ret = [
-        ...ret,
-        {
-          document: doc,
+      ret = {
+        status: {
+          status: 'ok',
+        },
+        document: {
+          ...doc,
           sender: {
-            id,
+            id: senderId,
             name,
             division,
             phone,
@@ -174,96 +354,21 @@ export class DocumentResolver {
           recipients: recipients,
           files: doc.files,
         },
-      ];
+      };
+
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      console.log(e);
+
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
     }
+
     return ret;
   }
 
-  @Query(() => DocumentResponse, { nullable: true })
-  @UseMiddleware(isAuth)
-  async document(
-    @Arg('id', () => Int) id: number
-  ): Promise<DocumentResponse | null | undefined> {
-    const repeatedDocs = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .select('max(dp.id)', 'id')
-      .where('dp.document = :id', { id })
-      .groupBy('document')
-      .getRawMany();
-
-    if (!repeatedDocs || repeatedDocs.length === 0) return null;
-
-    let repeatedIds: number[] = [];
-    for (let repeatedDoc of repeatedDocs) {
-      repeatedIds = [...repeatedIds, repeatedDoc.id];
-    }
-
-    const result = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .leftJoinAndSelect('dp.document', 'doc')
-      .leftJoinAndSelect('doc.docType', 'doct')
-      .leftJoinAndSelect('doc.sender', 'sen')
-      .leftJoinAndSelect('doc.files', 'files')
-      .leftJoinAndSelect('doc.recordedBy', 'rec')
-      .where('dp.id in (:...ids)', { ids: repeatedIds })
-      .andWhere('dp.document = :id', { id })
-      .getOne();
-
-    if (!result) return null;
-
-    const recipientsResult = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .where('dp.document = :docId', { docId: result.document.id })
-      .leftJoinAndSelect('dp.recipient', 'recip')
-      .getMany();
-
-    let recipients: RecipientResponse[] = [];
-    for (let { recipient } of recipientsResult) {
-      const { id, rutNum, rutDv, name, division, phone, email } = recipient;
-      recipients = [
-        ...recipients,
-        {
-          person: {
-            id,
-            name,
-            division,
-            phone,
-            email,
-            rut: `${rutNum}-${rutDv}`,
-          },
-          receivedOn: result.receivedOn,
-        },
-      ];
-    }
-
-    const { document: doc } = result;
-    const {
-      id: senderId,
-      rutNum,
-      rutDv,
-      name,
-      division,
-      phone,
-      email,
-    } = doc.sender;
-
-    return {
-      document: doc,
-      sender: {
-        id: senderId,
-        name,
-        division,
-        phone,
-        email,
-        rut: `${rutNum}-${rutDv}`,
-      },
-      sentOn: result.document.sentOn,
-      recipients: recipients,
-      files: doc.files,
-    };
-  }
-
-  @Mutation(() => DocumentResponse, { nullable: true })
+  @Mutation(() => DocumentResponse)
   @UseMiddleware(isClerk)
   async addDocument(
     @Arg('docNumber', { nullable: true }) docNumber: string,
@@ -274,187 +379,121 @@ export class DocumentResolver {
     @Arg('sentOn', { nullable: true }) sentOn: string,
     @Arg('recipients', () => [RecipientInput]) recipients: RecipientInput[],
     @Ctx() context: Context
-  ): Promise<DocumentResponse | null | undefined> {
-    const token = context.req.headers['authorization']!.split(' ')[1];
-    const { userId }: any = verify(token, process.env.ACCESS_TOKEN_SECRET!);
+  ): Promise<DocumentResponse> {
+    let ret: DocumentResponse = {
+      status: {
+        status: 'error',
+        message: 'Could not add document',
+      },
+    };
 
-    const insertResult = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .insert()
-      .values({
-        docNumber,
-        subject,
-        writtenOn,
-        docType: { id: docType },
-        recordedBy: userId,
-        sender: { id: sender },
-        sentOn,
-      })
-      .returning(['id'])
-      .execute();
+    const queryRunner = getConnection().createQueryRunner();
+    await queryRunner.connect();
 
-    const checkResult = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .leftJoinAndSelect('doc.docType', 'doct')
-      .leftJoinAndSelect('doc.sender', 'sen')
-      .leftJoinAndSelect('doc.files', 'files')
-      .leftJoinAndSelect('doc.recordedBy', 'rec')
-      .where('doc.id = :id', { id: insertResult.generatedMaps[0].id })
-      .getOne();
+    await queryRunner.startTransaction();
 
-    console.log(checkResult);
+    try {
+      const token = context.req.headers['authorization']!.split(' ')[1];
+      const { userId }: any = verify(token, process.env.ACCESS_TOKEN_SECRET!);
 
-    if (!checkResult || recipients.length === 0) {
-      return null;
-    }
-
-    let recipientIds: number[] = [];
-    recipients.forEach((recipient) => {
-      recipientIds = [...recipientIds, recipient.person];
-    });
-
-    const checkSender = await getRepository(Person)
-      .createQueryBuilder('per')
-      .where('per.id = :id', { id: sender })
-      .getOne();
-
-    console.log(sender, checkSender);
-
-    if (!checkSender) {
-      return null;
-    }
-
-    const checkRecipients = await getRepository(Person)
-      .createQueryBuilder('per')
-      .where('per.id in (:...recipientIds)', { recipientIds })
-      .getMany();
-    console.log(checkRecipients);
-
-    if (checkRecipients.length !== recipients.length) {
-      return null;
-    }
-
-    for (let { person, receivedOn } of recipients) {
-      await getRepository(DocumentPerson)
-        .createQueryBuilder('dp')
+      const insertResult = await queryRunner.manager
+        .getRepository(Document)
+        .createQueryBuilder('doc')
         .insert()
         .values({
-          recipient: { id: person },
-          receivedOn: receivedOn,
-          document: { id: checkResult.id },
+          docNumber,
+          subject,
+          writtenOn,
+          docType: { id: docType },
+          recordedBy: userId,
+          sender: { id: sender },
+          sentOn,
         })
+        .returning(['id'])
         .execute();
-    }
 
-    const { id, rutNum, rutDv, name, division, phone, email } = checkSender;
+      const checkResult = await queryRunner.manager
+        .getRepository(Document)
+        .createQueryBuilder('doc')
+        .leftJoinAndSelect('doc.docType', 'doct')
+        .leftJoinAndSelect('doc.sender', 'sen')
+        .leftJoinAndSelect('doc.files', 'files')
+        .leftJoinAndSelect('doc.recordedBy', 'rec')
+        .where('doc.id = :id', { id: insertResult.generatedMaps[0].id })
+        .getOne();
 
-    return {
-      document: checkResult,
-      sender: {
-        id,
-        name,
-        division,
-        phone,
-        email,
-        rut: `${rutNum}-${rutDv}`,
-      },
-      sentOn: insertResult.generatedMaps[0].sentOn
-        ?.toISOString()
-        .substring(0, 10),
-      recipients: checkRecipients.map((recipient) => {
-        const { id, rutNum, rutDv, name, division, phone, email } = checkSender;
-        return {
-          person: {
-            id,
-            name,
-            division,
-            phone,
-            email,
-            rut: `${rutNum}-${rutDv}`,
+      if (!checkResult || recipients.length === 0) {
+        ret = {
+          status: {
+            status: 'error',
+            message: 'Could not add document',
           },
-          receivedOn: recipients.find(({ person: id }) => id === recipient.id)![
-            'receivedOn'
-          ]!,
         };
-      }),
-      files: [],
-    };
-  }
 
-  @Query(() => [DocumentType])
-  @UseMiddleware(isAuth)
-  documentTypes() {
-    return DocumentType.find();
-  }
+        throw new Error('Could not add document');
+      }
 
-  @Mutation(() => Boolean)
-  @UseMiddleware(isClerk)
-  async addRecipient(
-    @Arg('document', () => Int) documentId: number,
-    @Arg('recipient', () => Int) recipientId: number,
-    @Arg('receivedOn') receivedOn: string
-  ) {
-    const docExists = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .select('id')
-      .where('doc.id = :id', { id: documentId })
-      .getCount();
+      let recipientIds: number[] = [];
+      recipients.forEach((recipient) => {
+        recipientIds = [...recipientIds, recipient.person];
+      });
 
-    if (docExists === 0) {
-      return false;
-    }
+      const senderData = await queryRunner.manager
+        .getRepository(Person)
+        .createQueryBuilder('per')
+        .where('per.id = :id', { id: sender })
+        .getOne();
 
-    const recipientExists = await getRepository(Person)
-      .createQueryBuilder('per')
-      .select('id')
-      .where('per.id = :id', { id: recipientId })
-      .getCount();
+      if (!senderData) {
+        ret = {
+          status: {
+            status: 'error',
+            message: 'Could not add document',
+          },
+        };
 
-    if (recipientExists === 0) {
-      return false;
-    }
+        throw new Error('Could not add document');
+      }
 
-    await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .insert()
-      .values({
-        receivedOn,
-        recipient: { id: recipientId },
-        document: { id: documentId },
-      })
-      .execute();
+      const uniqueRecipients = await queryRunner.manager
+        .getRepository(Person)
+        .createQueryBuilder('per')
+        .where('per.id in (:...recipientIds)', { recipientIds })
+        .getMany();
 
-    return true;
-  }
+      if (uniqueRecipients.length !== recipients.length) {
+        ret = {
+          status: {
+            status: 'error',
+            message: 'Could not add document',
+          },
+        };
 
-  @Query(() => [RecipientResponse], { nullable: true })
-  @UseMiddleware(isAuth)
-  async getRecipients(@Arg('id', () => Int) id: number) {
-    const docExists = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .select('id')
-      .where('doc.id = :id', { id })
-      .getCount();
+        throw new Error('Could not add document');
+      }
 
-    if (docExists === 0) {
-      return null;
-    }
+      for (let { person, receivedOn } of recipients) {
+        await queryRunner.manager
+          .getRepository(DocumentPerson)
+          .createQueryBuilder('dp')
+          .insert()
+          .values({
+            recipient: { id: person },
+            receivedOn: receivedOn,
+            document: { id: checkResult.id },
+          })
+          .execute();
+      }
 
-    const recipients = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .leftJoinAndSelect('dp.recipient', 'recp')
-      .addSelect('dp.receivedOn')
-      .where('dp.document = :id', { id })
-      .getMany();
+      const { id, rutNum, rutDv, name, division, phone, email } = senderData;
 
-    let result: RecipientResponse[] = [];
-    recipients.forEach(({ recipient, receivedOn }) => {
-      const { id, rutNum, rutDv, name, division, phone, email } = recipient;
-      result = [
-        ...result,
-        {
-          receivedOn: receivedOn,
-          person: {
+      ret = {
+        status: {
+          status: 'ok',
+        },
+        document: {
+          ...checkResult,
+          sender: {
             id,
             name,
             division,
@@ -462,12 +501,155 @@ export class DocumentResolver {
             email,
             rut: `${rutNum}-${rutDv}`,
           },
+          sentOn: insertResult.generatedMaps[0].sentOn
+            ?.toISOString()
+            .substring(0, 10),
+          recipients: uniqueRecipients.map((recipient) => {
+            const {
+              id,
+              rutNum,
+              rutDv,
+              name,
+              division,
+              phone,
+              email,
+            } = senderData;
+            return {
+              person: {
+                id,
+                name,
+                division,
+                phone,
+                email,
+                rut: `${rutNum}-${rutDv}`,
+              },
+              receivedOn: recipients.find(
+                ({ person: id }) => id === recipient.id
+              )!['receivedOn']!,
+            };
+          }),
+          files: [],
         },
-      ];
-    });
+      };
 
-    return result;
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      console.log(e);
+
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
+
+    return ret;
   }
+
+  @Query(() => DocumentTypesResponse)
+  @UseMiddleware(isAuth)
+  async documentTypes(): Promise<DocumentTypesResponse> {
+    try {
+      let docTypes: DocumentType[] = await DocumentType.find();
+
+      return {
+        status: {
+          status: 'ok',
+        },
+        docTypes,
+      };
+    } catch (e) {
+      console.log(e);
+
+      return {
+        status: {
+          status: 'error',
+          message: 'Could not get document types',
+        },
+        docTypes: [],
+      };
+    }
+  }
+
+  // @Mutation(() => Boolean)
+  // @UseMiddleware(isClerk)
+  // async addRecipient(
+  //   @Arg('document', () => Int) documentId: number,
+  //   @Arg('recipient', () => Int) recipientId: number,
+  //   @Arg('receivedOn') receivedOn: string
+  // ) {
+  //   const docExists = await getRepository(Document)
+  //     .createQueryBuilder('doc')
+  //     .select('id')
+  //     .where('doc.id = :id', { id: documentId })
+  //     .getCount();
+  //
+  //   if (docExists === 0) {
+  //     return false;
+  //   }
+  //
+  //   const recipientExists = await getRepository(Person)
+  //     .createQueryBuilder('per')
+  //     .select('id')
+  //     .where('per.id = :id', { id: recipientId })
+  //     .getCount();
+  //
+  //   if (recipientExists === 0) {
+  //     return false;
+  //   }
+  //
+  //   await getRepository(DocumentPerson)
+  //     .createQueryBuilder('dp')
+  //     .insert()
+  //     .values({
+  //       receivedOn,
+  //       recipient: { id: recipientId },
+  //       document: { id: documentId },
+  //     })
+  //     .execute();
+  //
+  //   return true;
+  // }
+
+  // @Query(() => [RecipientResponse], { nullable: true })
+  // @UseMiddleware(isAuth)
+  // async getRecipients(@Arg('id', () => Int) id: number) {
+  //   const docExists = await getRepository(Document)
+  //     .createQueryBuilder('doc')
+  //     .select('id')
+  //     .where('doc.id = :id', { id })
+  //     .getCount();
+  //
+  //   if (docExists === 0) {
+  //     return null;
+  //   }
+  //
+  //   const recipients = await getRepository(DocumentPerson)
+  //     .createQueryBuilder('dp')
+  //     .leftJoinAndSelect('dp.recipient', 'recp')
+  //     .addSelect('dp.receivedOn')
+  //     .where('dp.document = :id', { id })
+  //     .getMany();
+  //
+  //   let result: RecipientResponse[] = [];
+  //   recipients.forEach(({ recipient, receivedOn }) => {
+  //     const { id, rutNum, rutDv, name, division, phone, email } = recipient;
+  //     result = [
+  //       ...result,
+  //       {
+  //         receivedOn: receivedOn,
+  //         person: {
+  //           id,
+  //           name,
+  //           division,
+  //           phone,
+  //           email,
+  //           rut: `${rutNum}-${rutDv}`,
+  //         },
+  //       },
+  //     ];
+  //   });
+  //
+  //   return result;
+  // }
 
   @Mutation(() => DocumentResponse, { nullable: true })
   @UseMiddleware(isClerk)
@@ -477,155 +659,229 @@ export class DocumentResolver {
     @Arg('sender', () => Int) sender: number,
     @Arg('recipients', () => [RecipientInput])
     recipients: RecipientInput[]
-  ): Promise<DocumentResponse | null | undefined> {
-    const findResult = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .select([
-        'doc.docNumber',
-        'doc.subject',
-        'doc.writtenOn',
-        'doc.sentOn',
-        'doc.docType',
-      ])
-      .where('doc.id = :docId', { docId })
-      .getOne();
+  ): Promise<DocumentResponse> {
+    let ret: DocumentResponse = {
+      status: {
+        status: 'error',
+        message: 'Could not update document',
+      },
+    };
 
-    if (!findResult) return null;
+    const queryRunner = getConnection().createQueryRunner();
+    await queryRunner.connect();
 
-    let newMetadata: any = { ...findResult, ...metadata };
+    await queryRunner.startTransaction();
 
-    await getConnection()
-      .createQueryBuilder()
-      .update(Document)
-      .set({ ...newMetadata })
-      .where('id = :docId', { docId })
-      .execute();
+    try {
+      const findResult = await queryRunner.manager
+        .getRepository(Document)
+        .createQueryBuilder('doc')
+        .select([
+          'doc.docNumber',
+          'doc.subject',
+          'doc.writtenOn',
+          'doc.sentOn',
+          'doc.docType',
+        ])
+        .where('doc.id = :docId', { docId })
+        .getOne();
 
-    if (sender) {
-      await getConnection()
+      if (!findResult) {
+        ret = {
+          status: {
+            status: 'error',
+            message: 'Document not found',
+          },
+        };
+
+        throw new Error('Document not found');
+      }
+
+      let newMetadata: any = { ...findResult, ...metadata };
+
+      await queryRunner.connection
         .createQueryBuilder()
         .update(Document)
-        .set({ sender: { id: sender } })
+        .set({ ...newMetadata })
         .where('id = :docId', { docId })
         .execute();
-    }
 
-    if (recipients) {
-      // FIXME: definitvamente hay una mejor forma de hacer esto que no
-      // involucre eliminar todos los registros de destinatarios y reagregarlos.
-      // De momento me conformo con esto
-
-      await getConnection()
-        .createQueryBuilder()
-        .delete()
-        .from(DocumentPerson)
-        .where('document = :docId', { docId })
-        .execute();
-
-      for (let { person, receivedOn } of recipients) {
-        await getRepository(DocumentPerson)
-          .createQueryBuilder('dp')
-          .insert()
-          .values({
-            receivedOn: receivedOn,
-            recipient: { id: person },
-            document: { id: docId },
-          })
+      if (sender) {
+        await queryRunner.connection
+          .createQueryBuilder()
+          .update(Document)
+          .set({ sender: { id: sender } })
+          .where('id = :docId', { docId })
           .execute();
       }
+
+      if (recipients) {
+        // FIXME: definitvamente hay una mejor forma de hacer esto que no
+        // involucre eliminar todos los registros de destinatarios y reagregarlos.
+        // De momento me conformo con esto
+
+        await queryRunner.connection
+          .createQueryBuilder()
+          .delete()
+          .from(DocumentPerson)
+          .where('document = :docId', { docId })
+          .execute();
+
+        for (let { person, receivedOn } of recipients) {
+          await queryRunner.manager
+            .getRepository(DocumentPerson)
+            .createQueryBuilder('dp')
+            .insert()
+            .values({
+              receivedOn: receivedOn,
+              recipient: { id: person },
+              document: { id: docId },
+            })
+            .execute();
+        }
+      }
+
+      const checkResult = await queryRunner.manager
+        .getRepository(Document)
+        .createQueryBuilder('doc')
+        .leftJoinAndSelect('doc.docType', 'doct')
+        .leftJoinAndSelect('doc.sender', 'sen')
+        .leftJoinAndSelect('doc.files', 'files')
+        .leftJoinAndSelect('doc.recordedBy', 'rec')
+        .where('doc.id = :docId', { docId })
+        .getOne();
+
+      const recipientIdsResult = await queryRunner.manager
+        .getRepository(DocumentPerson)
+        .createQueryBuilder('dp')
+        .leftJoin('dp.recipient', 'recip')
+        .select(['recip.id', 'dp.received_on'])
+        .where('dp.document = :docId', {
+          docId,
+        })
+        .getRawMany();
+
+      const recipientIds = recipientIdsResult.map((rec) => {
+        return rec.recip_id;
+      });
+
+      const recipientData = await queryRunner.manager
+        .getRepository(Person)
+        .createQueryBuilder('per')
+        .where('per.id in (:...recipientIds)', { recipientIds })
+        .getMany();
+
+      const senderData = await queryRunner.manager
+        .getRepository(Person)
+        .createQueryBuilder('per')
+        .where('per.id = :sender', { sender: checkResult!.sender.id })
+        .getOne();
+
+      ret = {
+        status: { status: 'ok' },
+        document: {
+          ...checkResult!,
+          writtenOn: checkResult!.writtenOn,
+          sender: {
+            id: senderData!.id,
+            name: senderData!.name,
+            division: senderData!.division,
+            phone: senderData!.phone,
+            email: senderData!.email,
+            rut: `${senderData!.rutNum}-${senderData!.rutDv}`,
+          },
+          sentOn: checkResult!.sentOn,
+          recipients: recipientData.map((recipient) => {
+            const {
+              id,
+              rutNum,
+              rutDv,
+              name,
+              division,
+              phone,
+              email,
+            } = recipient;
+            return {
+              person: {
+                id,
+                name,
+                division,
+                phone,
+                email,
+                rut: `${rutNum}-${rutDv}`,
+              },
+              receivedOn: recipientIdsResult.find(
+                ({ recip_id }) => recip_id === recipient.id
+              )!['received_on']!,
+            };
+          }),
+          files: [],
+        },
+      };
+
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      console.log(e);
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
     }
 
-    const checkResult = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .leftJoinAndSelect('doc.docType', 'doct')
-      .leftJoinAndSelect('doc.sender', 'sen')
-      .leftJoinAndSelect('doc.files', 'files')
-      .leftJoinAndSelect('doc.recordedBy', 'rec')
-      .where('doc.id = :docId', { docId })
-      .getOne();
-
-    const recipientIdsResult = await getRepository(DocumentPerson)
-      .createQueryBuilder('dp')
-      .leftJoin('dp.recipient', 'recip')
-      .select(['recip.id', 'dp.received_on'])
-      .where('dp.document = :docId', {
-        docId,
-      })
-      .getRawMany();
-
-    const recipientIds = recipientIdsResult.map((rec) => {
-      return rec.recip_id;
-    });
-
-    const recipientData = await getRepository(Person)
-      .createQueryBuilder('per')
-      .where('per.id in (:...recipientIds)', { recipientIds })
-      .getMany();
-
-    const senderData = await getRepository(Person)
-      .createQueryBuilder('per')
-      .where('per.id = :sender', { sender: checkResult!.sender.id })
-      .getOne();
-
-    return {
-      document: {
-        ...checkResult!,
-        writtenOn: checkResult!.writtenOn,
-      },
-      sender: {
-        id: senderData!.id,
-        name: senderData!.name,
-        division: senderData!.division,
-        phone: senderData!.phone,
-        email: senderData!.email,
-        rut: `${senderData!.rutNum}-${senderData!.rutDv}`,
-      },
-      sentOn: checkResult!.sentOn,
-      recipients: recipientData.map((recipient) => {
-        const { id, rutNum, rutDv, name, division, phone, email } = recipient;
-        return {
-          person: {
-            id,
-            name,
-            division,
-            phone,
-            email,
-            rut: `${rutNum}-${rutDv}`,
-          },
-          receivedOn: recipientIdsResult.find(
-            ({ recip_id }) => recip_id === recipient.id
-          )!['received_on']!,
-        };
-      }),
-      files: [],
-    };
+    return ret;
   }
 
   @Mutation(() => StatusResponse)
   @UseMiddleware(isClerk)
-  async deleteDocument(@Arg('id', () => Int) id: number) {
-    const findResult = await getRepository(Document)
-      .createQueryBuilder('doc')
-      .select('doc.id')
-      .where('doc.id = :id', { id })
-      .getOne();
+  async deleteDocument(
+    @Arg('id', () => Int) id: number
+  ): Promise<StatusResponse> {
+    let ret: StatusResponse = {
+      status: 'error',
+      message: 'Could not delete document',
+    };
 
-    if (!findResult) {
-      return {
-        status: 'error',
-        message: 'Document not found',
+    const queryRunner = getConnection().createQueryRunner();
+    await queryRunner.connect();
+
+    await queryRunner.startTransaction();
+
+    try {
+      const findResult = await queryRunner.manager
+        .getRepository(Document)
+        .createQueryBuilder('doc')
+        .select('doc.id')
+        .where('doc.id = :id', { id })
+        .getOne();
+
+      if (!findResult) {
+        ret = {
+          status: 'error',
+          message: 'Document not found',
+        };
+
+        throw new Error('Document not found');
+      }
+
+      await queryRunner.connection
+        .createQueryBuilder()
+        .delete()
+        .from(Document)
+        .where('id = :id', { id })
+        .execute();
+
+      ret = {
+        status: 'ok',
       };
+
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      console.log(e);
+
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
     }
 
-    await getConnection()
-      .createQueryBuilder()
-      .delete()
-      .from(Document)
-      .where('id = :id', { id })
-      .execute();
-
-    return {
-      status: 'ok',
-    };
+    return ret;
   }
 }

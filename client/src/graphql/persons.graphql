@@ -1,19 +1,23 @@
 query Persons {
   persons {
-    person {
+    status {
+      status
+      message
+    }
+    persons {
       id
       name
       rut
       division
       phone
       email
-    }
-    address {
-      address
-      postalCode
-      country {
-        countryNumber
-        name
+      address {
+        address
+        postalCode
+        country {
+          countryNumber
+          name
+        }
       }
     }
   }

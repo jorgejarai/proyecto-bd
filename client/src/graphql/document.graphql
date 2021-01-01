@@ -1,5 +1,9 @@
 query Document($id: Int!) {
   document(id: $id) {
+    status {
+      status
+      message
+    }
     document {
       id
       docType {
@@ -16,18 +20,7 @@ query Document($id: Int!) {
         email
         isClerk
       }
-    }
-    sender {
-      id
-      name
-      rut
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         name
         rut
@@ -35,7 +28,18 @@ query Document($id: Int!) {
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          name
+          rut
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }

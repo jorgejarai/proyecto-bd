@@ -212,37 +212,39 @@ export const Documents: React.FC = () => {
           </thead>
           <tbody>
             {currRecipient ? (
-              docData.documents
+              docData.documents.documents
                 .filter((doc) =>
-                  doc.recipients.some((rec) => rec.person.id === currRecipient)
+                  doc?.recipients?.some(
+                    (rec) => rec.person.id === currRecipient
+                  )
                 )
                 .map((doc) => {
-                  const { document: docInfo, sender } = doc;
                   const {
                     id,
                     docType,
                     docNumber,
                     subject,
                     writtenOn,
-                  } = docInfo;
+                    sender,
+                  } = doc;
 
                   if (search.length !== 0) {
                     let searchAttribute: string | undefined | null = '';
                     switch (searchCriterion.criterion) {
                       case 'id':
-                        searchAttribute = docInfo.id.toString();
+                        searchAttribute = id.toString();
                         break;
                       case 'docType':
                         searchAttribute = docType!.typeName;
                         break;
                       case 'docNumber':
-                        searchAttribute = docInfo.docNumber;
+                        searchAttribute = docNumber;
                         break;
                       case 'subject':
-                        searchAttribute = docInfo.subject;
+                        searchAttribute = subject;
                         break;
                       case 'sender':
-                        searchAttribute = sender.name;
+                        searchAttribute = sender?.name;
                         break;
                     }
 
@@ -271,7 +273,7 @@ export const Documents: React.FC = () => {
                       <td>
                         {writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}
                       </td>
-                      <td>{sender.name}</td>
+                      <td>{sender?.name}</td>
                     </tr>
                   );
                 })

@@ -15,8 +15,8 @@ export const Header: React.FC = () => {
   const [logout, { client }] = useLogoutMutation();
   const history = useHistory();
 
-  const loggedIn = !loading && data && data.me;
-  const name = loggedIn ? data!.me!.name : '';
+  const loggedIn = !loading && data && data.me.user;
+  const name = loggedIn ? data!.me!.user?.name : '';
 
   return (
     <Navbar bg="light" expand="lg">
@@ -54,7 +54,12 @@ export const Header: React.FC = () => {
                         cache.writeQuery<MeQuery>({
                           query: MeDocument,
                           data: {
-                            me: null,
+                            me: {
+                              status: {
+                                status: 'error',
+                                message: 'Not logged in',
+                              },
+                            },
                           },
                         });
                       },

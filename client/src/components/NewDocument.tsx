@@ -171,14 +171,17 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
               cache.writeQuery<DocumentsQuery>({
                 query: DocumentsDocument,
                 data: {
-                  documents: [
-                    ...documents.documents,
-                    {
-                      document: newDocument.document,
-                      sender: newDocument.sender,
-                      recipients: newDocument.recipients,
+                  documents: {
+                    status: {
+                      status: 'ok',
                     },
-                  ],
+                    documents: [
+                      ...documents.documents.documents,
+                      {
+                        document: newDocument.document,
+                      },
+                    ],
+                  },
                 },
               });
 
@@ -212,7 +215,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                       as="select"
                       name="docType"
                       onChange={(event) => {
-                        const newDocType = docTypesData.documentTypes.find(
+                        const newDocType = docTypesData.documentTypes.docTypes.find(
                           ({ id }) => '' + id === event.target.value
                         );
 
@@ -220,7 +223,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                         else setFieldValue('docType', 7);
                       }}
                     >
-                      {docTypesData.documentTypes.map((docType) => (
+                      {docTypesData.documentTypes.docTypes.map((docType) => (
                         <option key={docType.id} value={docType.id}>
                           {docType.typeName}
                         </option>
@@ -305,7 +308,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                       name="sender"
                       labelKey="label"
                       as={Typeahead}
-                      options={perData.personNames}
+                      options={perData.personNames.personNames}
                       onChange={(selected: any[]) => {
                         const sender = selected[0] ? selected[0].id : null;
                         setFieldValue('sender', sender);
@@ -332,7 +335,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                         {values.recipients.map(({ id, date }) => {
                           if (!id) return null;
 
-                          const personEntry = perData.personNames.find(
+                          const personEntry = perData.personNames.personNames.find(
                             (person) => id === person.id
                           );
 
@@ -341,6 +344,8 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                           const year = date.getFullYear();
                           const month = date.getMonth() + 1;
                           const day = date.getDate();
+
+                          console.log(personEntry.label);
 
                           return (
                             <tr key={id}>
@@ -365,9 +370,6 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                         })}
                       </tbody>
                     </Table>
-                    <Form.Control.Feedback type="invalid" id="rut">
-                      {errors.recipients}
-                    </Form.Control.Feedback>
                   </Form.Group>
                 </Form.Row>
                 <Form.Row>
@@ -376,7 +378,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                       placeholder="Type a new recipient here"
                       id="new-recipient"
                       labelKey="label"
-                      options={perData.personNames}
+                      options={perData.personNames.personNames}
                       onChange={(selected: any[]) => {
                         const newRecipient = selected[0]
                           ? selected[0].id

@@ -16,6 +16,10 @@ mutation AddDocument(
     sentOn: $sentOn
     recipients: $recipients
   ) {
+    status {
+      status
+      message
+    }
     document {
       id
       docNumber
@@ -29,18 +33,7 @@ mutation AddDocument(
         id
         name
       }
-    }
-    sender {
-      id
-      rut
-      name
-      division
-      phone
-      email
-    }
-    sentOn
-    recipients {
-      person {
+      sender {
         id
         rut
         name
@@ -48,7 +41,18 @@ mutation AddDocument(
         phone
         email
       }
-      receivedOn
+      sentOn
+      recipients {
+        person {
+          id
+          rut
+          name
+          division
+          phone
+          email
+        }
+        receivedOn
+      }
     }
   }
 }

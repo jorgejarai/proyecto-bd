@@ -34,7 +34,12 @@ export const Login: React.FC<RouteComponentProps> = ({ history }) => {
                   cache.writeQuery<MeQuery>({
                     query: MeDocument,
                     data: {
-                      me: data.login.user,
+                      me: {
+                        status: {
+                          status: 'ok',
+                        },
+                        user: data.login.user,
+                      },
                     },
                   });
                   client.resetStore();
@@ -46,7 +51,10 @@ export const Login: React.FC<RouteComponentProps> = ({ history }) => {
                 return;
               }
 
-              const { status, message, accessToken } = response.data.login;
+              const {
+                status: { status, message },
+                accessToken,
+              } = response.data.login;
 
               if (status === 'error' && message) {
                 setGeneralError(message);

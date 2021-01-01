@@ -37,19 +37,14 @@ export const documentSchema = yup.object({
   docType: yup.number().integer().required('Must provide a document type'),
   docNumber: yup.string().max(16, 'Document number too long'),
   subject: yup.string().max(128).required('Must provide a subject'),
-  writtenOn: yup
-    .date()
-    .max(new Date().toISOString(), 'Cannot write a message in the future'),
-  sender: yup
-    .number()
-    .integer('Must provide a sender')
-    .required('Must provide a sender')
-    .min(0, 'Must provide a sender'),
-  sentOn: yup.date().max(new Date(), 'Cannot send a message in the future'),
+  writtenOn: yup.date(),
+  // .max(new Date().toISOString(), 'Cannot write a message in the future'),
+  sender: yup.number().integer().required('Must provide a sender'),
+  sentOn: yup.date(), //.max(new Date(), 'Cannot send a message in the future'),
   recipients: yup.array().of(
     yup.object({
       id: yup.number().integer().required(),
-      date: yup.date().max(new Date().toISOString()),
+      date: yup.date(), //.max(new Date().toISOString()),
     })
   ),
 });
