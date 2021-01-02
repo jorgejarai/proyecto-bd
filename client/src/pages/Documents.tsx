@@ -21,6 +21,12 @@ import { Loading } from '../components/Loading';
 import { NewDocument } from '../components/NewDocument';
 import { PersonSettings } from '../components/PersonSettings';
 import { DocumentInfo } from '../components/DocumentInfo';
+import { AdvancedDocSearch } from '../components/AdvancedDocSearch';
+import {
+  SearchCriterionEntry,
+  SearchCriterionType,
+  searchCriteriaTypes,
+} from '../searchCriteria';
 
 const useStateWithLocalStorage = (
   localStorageKey: string
@@ -37,40 +43,6 @@ const useStateWithLocalStorage = (
 
   return [value, setValue];
 };
-
-type SearchCriterion = {
-  criterion:
-    | 'id'
-    | 'docType'
-    | 'docNumber'
-    | 'subject'
-    | 'writtenOn'
-    | 'sender';
-  displayName: string;
-};
-
-const searchCriteria: SearchCriterion[] = [
-  {
-    criterion: 'id',
-    displayName: 'No.',
-  },
-  {
-    criterion: 'docType',
-    displayName: 'Document type',
-  },
-  {
-    criterion: 'docNumber',
-    displayName: 'Document no.',
-  },
-  {
-    criterion: 'subject',
-    displayName: 'Subject',
-  },
-  {
-    criterion: 'sender',
-    displayName: 'Sender',
-  },
-];
 
 export const Documents: React.FC = () => {
   const {
@@ -89,18 +61,22 @@ export const Documents: React.FC = () => {
     error: docTypesError,
   } = useDocumentTypesQuery();
 
-  const [searchCriterion, setSearchCriterion] = useState<SearchCriterion>(
-    searchCriteria[0]
+  const [searchCriterion, setSearchCriterion] = useState<SearchCriterionType>(
+    searchCriteriaTypes[0]
   );
   const [search, setSearch] = useState('');
   const [currRecipient, setCurrRecipient] = useStateWithLocalStorage(
     'recipient'
   );
   const [advancedSearch, setAdvancedSearch] = useState(false);
+  const [advancedCriteria, setAdvancedCriteria] = useState<
+    SearchCriterionEntry[]
+  >([]);
 
   const [showNewDialog, setShowNewDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
   const [currDocument, setCurrDocument] = useState(0);
 
@@ -123,6 +99,10 @@ export const Documents: React.FC = () => {
   ) {
     return <Redirect to="/login" />;
   }
+
+  const receivedDocuments = docData.documents.documents.filter((doc) =>
+    doc?.recipients?.some((rec) => rec.person.id === currRecipient)
+  );
 
   return (
     <>
@@ -161,17 +141,17 @@ export const Documents: React.FC = () => {
                   as="select"
                   value={searchCriterion.criterion}
                   onChange={(event) => {
-                    const newSearchCriterion = searchCriteria.find(
+                    const newSearchCriterion = searchCriteriaTypes.find(
                       (crit) => crit.criterion === event.target.value
                     );
 
                     if (newSearchCriterion)
                       setSearchCriterion(newSearchCriterion);
-                    else setSearchCriterion(searchCriteria[0]);
+                    else setSearchCriterion(searchCriteriaTypes[0]);
                   }}
                   disabled={advancedSearch}
                 >
-                  {searchCriteria.map((crit) => (
+                  {searchCriteriaTypes.map((crit) => (
                     <option key={crit.criterion} value={crit.criterion}>
                       {crit.displayName}
                     </option>
@@ -179,7 +159,7 @@ export const Documents: React.FC = () => {
                 </Form.Control>
               </Col>
               <Col xs="auto">
-                <Button onClick={() => setAdvancedSearch(true)}>
+                <Button onClick={() => setShowAdvancedSearch(true)}>
                   Advanced
                 </Button>
               </Col>
@@ -211,77 +191,75 @@ export const Documents: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {currRecipient ? (
-              docData.documents.documents
-                .filter((doc) =>
-                  doc?.recipients?.some(
-                    (rec) => rec.person.id === currRecipient
-                  )
-                )
-                .map((doc) => {
-                  const {
-                    id,
-                    docType,
-                    docNumber,
-                    subject,
-                    writtenOn,
-                    sender,
-                  } = doc;
+            {currRecipient && receivedDocuments.length > 0 ? (
+              receivedDocuments.map((doc) => {
+                const {
+                  id,
+                  docType,
+                  docNumber,
+                  subject,
+                  writtenOn,
+                  sender,
+                } = doc;
 
-                  if (search.length !== 0) {
-                    let searchAttribute: string | undefined | null = '';
-                    switch (searchCriterion.criterion) {
-                      case 'id':
-                        searchAttribute = id.toString();
-                        break;
-                      case 'docType':
-                        searchAttribute = docType!.typeName;
-                        break;
-                      case 'docNumber':
-                        searchAttribute = docNumber;
-                        break;
-                      case 'subject':
-                        searchAttribute = subject;
-                        break;
-                      case 'sender':
-                        searchAttribute = sender?.name;
-                        break;
-                    }
-
-                    if (
-                      searchAttribute &&
-                      !searchAttribute
-                        .toLocaleLowerCase()
-                        .includes(search.toLocaleLowerCase())
-                    ) {
-                      return null;
-                    }
+                if (search.length !== 0) {
+                  let searchAttribute: string | undefined | null = '';
+                  switch (searchCriterion.criterion) {
+                    case 'id':
+                      searchAttribute = id.toString();
+                      break;
+                    case 'docType':
+                      searchAttribute = docType!.typeName;
+                      break;
+                    case 'docNumber':
+                      searchAttribute = docNumber;
+                      break;
+                    case 'subject':
+                      searchAttribute = subject;
+                      break;
+                    case 'sender':
+                      searchAttribute = sender?.name;
+                      break;
                   }
 
-                  return (
-                    <tr
-                      key={id}
-                      onDoubleClick={() => {
-                        setCurrDocument(id);
-                        setShowInfoDialog(true);
-                      }}
-                    >
-                      <td>{id}</td>
-                      <td>{docType.typeName}</td>
-                      <td>{docNumber}</td>
-                      <td>{subject}</td>
-                      <td>
-                        {writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}
-                      </td>
-                      <td>{sender?.name}</td>
-                    </tr>
-                  );
-                })
+                  if (
+                    searchAttribute &&
+                    !searchAttribute
+                      .toLocaleLowerCase()
+                      .includes(search.toLocaleLowerCase())
+                  ) {
+                    return null;
+                  }
+                }
+
+                return (
+                  <tr
+                    key={id}
+                    onDoubleClick={() => {
+                      setCurrDocument(id);
+                      setShowInfoDialog(true);
+                    }}
+                  >
+                    <td>{id}</td>
+                    <td>{docType.typeName}</td>
+                    <td>{docNumber}</td>
+                    <td>{subject}</td>
+                    <td>
+                      {writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}
+                    </td>
+                    <td>{sender?.name}</td>
+                  </tr>
+                );
+              })
             ) : (
               <tr>
                 <td colSpan={6}>
-                  <p className="text-center">
-                    Please set up a recipient for looking at their documents.
+                  <p className="text-center mt-3">
+                    {!currRecipient &&
+                      'Please set up a recipient for looking at their documents.'}
+                    {currRecipient &&
+                      receivedDocuments.length === 0 &&
+                      'This person has not received any documents yet'}
                   </p>
                 </td>
               </tr>
@@ -300,6 +278,11 @@ export const Documents: React.FC = () => {
         show={showInfoDialog}
         setShow={setShowInfoDialog}
         docId={currDocument}
+      />
+      <AdvancedDocSearch
+        show={showAdvancedSearch}
+        setShow={setShowAdvancedSearch}
+        setCriterion={setAdvancedCriteria}
       />
     </>
   );

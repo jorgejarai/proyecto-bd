@@ -127,42 +127,52 @@ export const Persons: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {perData.persons.persons.map((person) => {
-              if (!person || !person || !person.address) return null;
+            {perData.persons.persons.length > 0 ? (
+              perData.persons.persons.map((person) => {
+                if (!person || !person || !person.address) return null;
 
-              const { id, rut, name, division, phone, email } = person;
-              const { address, country } = person.address;
+                const { id, rut, name, division, phone, email } = person;
+                const { address, country } = person.address;
 
-              if (search.length !== 0) {
-                const searchAttribute = person[
-                  searchCriterion.criterion
-                ]?.toLocaleString();
+                if (search.length !== 0) {
+                  const searchAttribute = person[
+                    searchCriterion.criterion
+                  ]?.toLocaleString();
 
-                if (
-                  searchAttribute &&
-                  !searchAttribute
-                    .toLocaleLowerCase()
-                    .includes(search.toLocaleLowerCase())
-                )
-                  return null;
-              }
+                  if (
+                    searchAttribute &&
+                    !searchAttribute
+                      .toLocaleLowerCase()
+                      .includes(search.toLocaleLowerCase())
+                  )
+                    return null;
+                }
 
-              return (
-                <tr
-                  key={id}
-                  onDoubleClick={() => {
-                    setCurrPerson(id);
-                    setShowInfoDialog(true);
-                  }}
-                >
-                  <td>{rut}</td>
-                  <td>{division ? `${name} - ${division}` : `${name}`}</td>
-                  <td>{`${address}, ${country.name}`}</td>
-                  <td>{email}</td>
-                  <td>{phone}</td>
-                </tr>
-              );
-            })}
+                return (
+                  <tr
+                    key={id}
+                    onDoubleClick={() => {
+                      setCurrPerson(id);
+                      setShowInfoDialog(true);
+                    }}
+                  >
+                    <td>{rut}</td>
+                    <td>{division ? `${name} - ${division}` : `${name}`}</td>
+                    <td>{`${address}, ${country.name}`}</td>
+                    <td>{email}</td>
+                    <td>{phone}</td>
+                  </tr>
+                );
+              })
+            ) : (
+              <tr>
+                <td colSpan={6}>
+                  <p className="text-center mt-3">
+                    There are no persons registered
+                  </p>
+                </td>
+              </tr>
+            )}
           </tbody>
         </Table>
       </Container>

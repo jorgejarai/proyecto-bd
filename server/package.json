@@ -30,6 +30,7 @@
     "graphql": "^15.4.0",
     "graphql-scalars": "^1.6.1",
     "graphql-tools": "^7.0.2",
+    "http": "^0.0.1-security",
     "https": "^1.0.0",
     "jsonwebtoken": "^8.5.1",
     "pg": "^8.4.2",

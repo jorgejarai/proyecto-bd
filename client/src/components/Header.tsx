@@ -69,6 +69,7 @@ export const Header: React.FC = () => {
                     await client!.clearStore();
                     setAccessToken('');
                     history.push('/login');
+                    window.location.reload();
                   }
                 }}
               >

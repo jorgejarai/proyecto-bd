@@ -61,6 +61,7 @@ export const Login: React.FC<RouteComponentProps> = ({ history }) => {
               } else if (status === 'ok') {
                 setAccessToken(accessToken);
                 history.push('/');
+                window.location.reload();
               }
             }}
           >

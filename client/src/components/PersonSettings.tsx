@@ -93,7 +93,7 @@ export const PersonSettings: React.FC<Props> = ({
                       name="recipient"
                       defaultInputValue={initialPersonLabel}
                       as={Typeahead}
-                      options={data.personNames}
+                      options={data.personNames.personNames}
                       onChange={(selected: any[]) => {
                         const sender = selected[0] ? selected[0].id : null;
                         setFieldValue('recipient', sender);

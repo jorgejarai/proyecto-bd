@@ -6,6 +6,7 @@ import {
   ObjectType,
   Field,
   Ctx,
+  Int,
   UseMiddleware,
 } from 'type-graphql';
 import { verify } from 'jsonwebtoken';
@@ -17,6 +18,7 @@ import { isAuth } from '../isAuth';
 import { sendRefreshToken } from '../sendRefreshToken';
 import { userRegistrationSchema, userLoginSchema } from '../schema';
 import { StatusResponse } from '../StatusResponse';
+import { getConnection } from 'typeorm';
 
 @ObjectType()
 class LoginResponse {
@@ -199,6 +201,7 @@ export class UserResolver {
       .catch(() => {
         return {
           status: 'error',
+          error: 'Invalid format',
         };
       });
 
@@ -223,5 +226,63 @@ export class UserResolver {
     return {
       status: 'ok',
     };
+  }
+
+  @Mutation(() => StatusResponse)
+  @UseMiddleware(isAuth)
+  async changePassword(
+    @Arg('user', () => Int) user: number,
+    @Arg('newPassword') newPassword: string,
+    @Ctx() { res }: Context
+  ): Promise<StatusResponse> {
+    let ret: StatusResponse = {
+      status: 'error',
+      message: 'Could not update password',
+    };
+
+    const queryRunner = getConnection().createQueryRunner();
+    await queryRunner.connect();
+
+    await queryRunner.startTransaction();
+    try {
+      const hashedPassword = await hash(newPassword, 12);
+
+      const updateResult = await queryRunner.manager
+        .getRepository(User)
+        .createQueryBuilder('user')
+        .update()
+        .set({ password: hashedPassword })
+        .where('id = :user', { user })
+        .execute();
+
+      if (!updateResult) {
+        console.log(updateResult);
+        throw new Error('Could not update password');
+      }
+
+      await queryRunner.manager
+        .getRepository(User)
+        .createQueryBuilder('user')
+        .update()
+        .set({ tokenVersion: () => '"token_version" + 1' })
+        .where('id = :user', { user })
+        .execute();
+
+      sendRefreshToken(res, '');
+
+      ret = {
+        status: 'ok',
+      };
+
+      await queryRunner.commitTransaction();
+    } catch (e) {
+      console.log(e);
+
+      await queryRunner.rollbackTransaction();
+    } finally {
+      await queryRunner.release();
+    }
+
+    return ret;
   }
 }

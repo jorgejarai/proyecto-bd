@@ -30,6 +30,13 @@ import fs from 'fs';
 
   app.use(cookieParser());
 
+  app.use(function (req, res, next) {
+    if (!req.secure) {
+      return res.redirect(['https://', req.get('Host'), req.url].join(''));
+    }
+    next();
+  });
+
   app.get('/', (_, res) => res.send("You shouldn't be here, but ok"));
 
   app.post('/refresh_token', async (req, res) => {
