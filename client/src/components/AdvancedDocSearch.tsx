@@ -5,7 +5,11 @@ import { Typeahead } from 'react-bootstrap-typeahead';
 import DatePicker from 'react-datepicker';
 import loadingImage from '../assets/loading.svg';
 import { useDocumentTypesQuery, useUsersQuery } from '../generated/graphql';
-import { searchCriteriaTypes, SearchCriterionEntry } from '../searchCriteria';
+import {
+  advancedSearchKeywordCriteriaTypes,
+  KeywordSearchCriterion,
+  SearchCriterionEntry,
+} from '../searchCriteria';
 
 interface Props {
   show: boolean;
@@ -78,6 +82,8 @@ export const AdvancedDocSearch: React.FC<Props> = ({
     );
   }
 
+  console.log(docTypesData.documentTypes.docTypes);
+
   return (
     <Modal show={show} onHide={() => setShow(false)} size="lg">
       <Modal.Header>
@@ -92,12 +98,20 @@ export const AdvancedDocSearch: React.FC<Props> = ({
           sentOnStart: new Date(),
           sentOnEnd: new Date(),
           docType: false,
-          docTypeValue: 0,
+          docTypeValue: {
+            id: 7,
+            name: 'Boleta',
+          },
           recorder: false,
-          recorderValue: 0,
+          recorderValue: {
+            id: 0,
+            name: '',
+          },
           keyword: false,
-          keywordCriterion: '',
-          keywordValue: '',
+          keywordValue: {
+            type: 'id',
+            value: '',
+          },
         }}
         onSubmit={async (values, { setSubmitting }) => {
           setSubmitting(true);
@@ -141,7 +155,7 @@ export const AdvancedDocSearch: React.FC<Props> = ({
           if (values.keyword) {
             criteria.push({
               criterion: 'keyword',
-              value: values.keywordValue,
+              value: values.keywordValue as KeywordSearchCriterion,
             });
           }
 
@@ -271,14 +285,28 @@ export const AdvancedDocSearch: React.FC<Props> = ({
                             ({ id }) => '' + id === event.target.value
                           );
 
-                          if (newDocType)
-                            setFieldValue('docTypeValue', newDocType.id);
-                          else setFieldValue('docTypeValue', 7);
+                          console.log(newDocType, event.target.value);
+
+                          if (newDocType) {
+                            setFieldValue('docTypeValue', {
+                              id: newDocType.id,
+                              name: newDocType.typeName,
+                            });
+                          } else {
+                            setFieldValue('docTypeValue', {
+                              id: 7,
+                              name: 'Boleta',
+                            });
+                          }
                         }}
                         disabled={!values.docType}
                       >
                         {docTypesData.documentTypes.docTypes.map((docType) => (
-                          <option key={docType.id} value={docType.id}>
+                          <option
+                            key={docType.id}
+                            value={docType.id}
+                            selected={docType.id === 7}
+                          >
                             {docType.typeName}
                           </option>
                         ))}
@@ -305,10 +333,11 @@ export const AdvancedDocSearch: React.FC<Props> = ({
                         as={Typeahead}
                         options={usersData.users.users}
                         onChange={(selected: any[]) => {
-                          const recorderValue = selected[0]
-                            ? selected[0].id
-                            : null;
-                          setFieldValue('recorderValue', recorderValue);
+                          console.log(selected[0]);
+                          setFieldValue('recorderValue', {
+                            id: selected[0].id,
+                            name: selected[0].name,
+                          });
                         }}
                         disabled={!values.recorder}
                       />
@@ -329,27 +358,32 @@ export const AdvancedDocSearch: React.FC<Props> = ({
                     <Col xs={4}>
                       <Form.Control
                         as="select"
-                        value={values.keywordCriterion}
+                        value={values.keywordValue.type}
                         onChange={(event) => {
-                          const newSearchCriterion = searchCriteriaTypes.find(
+                          const newSearchCriterion = advancedSearchKeywordCriteriaTypes.find(
                             (crit) => crit.criterion === event.target.value
                           );
 
                           if (newSearchCriterion)
-                            setFieldValue(
-                              'keywordCriterion',
-                              newSearchCriterion.criterion
-                            );
+                            setFieldValue('keywordValue', {
+                              ...values.keywordValue,
+                              type: newSearchCriterion.criterion,
+                            });
                           else
-                            setFieldValue(
-                              'keywordCriterion',
-                              searchCriteriaTypes[0].criterion
-                            );
+                            setFieldValue('keywordValue', {
+                              ...values.keywordValue,
+                              type:
+                                advancedSearchKeywordCriteriaTypes[0].criterion,
+                            });
                         }}
                         disabled={!values.keyword}
                       >
-                        {searchCriteriaTypes.map((crit) => (
-                          <option key={crit.criterion} value={crit.criterion}>
+                        {advancedSearchKeywordCriteriaTypes.map((crit) => (
+                          <option
+                            key={crit.criterion}
+                            value={crit.criterion}
+                            selected={crit.criterion === 'id'}
+                          >
                             {crit.displayName}
                           </option>
                         ))}
@@ -360,6 +394,13 @@ export const AdvancedDocSearch: React.FC<Props> = ({
                         name="keywordValue"
                         as={Form.Control}
                         disabled={!values.keyword}
+                        onChange={(event: any) => {
+                          setFieldValue('keywordValue', {
+                            ...values.keywordValue,
+                            value: event?.target.value,
+                          });
+                        }}
+                        value={values.keywordValue.value}
                       />
                     </Col>
                   </Form.Row>
@@ -372,11 +413,13 @@ export const AdvancedDocSearch: React.FC<Props> = ({
                 <Button
                   variant="primary"
                   disabled={
-                    !values.writtenOn &&
-                    !values.sentOn &&
-                    !values.docType &&
-                    !values.recorder &&
-                    !values.keyword
+                    (!values.writtenOn &&
+                      !values.sentOn &&
+                      !values.docType &&
+                      !values.recorder &&
+                      !values.keyword) ||
+                    (values.recorder && values.recorderValue.id === 0) ||
+                    (values.docType && values.docTypeValue.id === 0)
                   }
                   type="submit"
                 >

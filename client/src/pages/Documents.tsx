@@ -1,5 +1,6 @@
-import React, { Dispatch, SetStateAction, useState } from 'react';
+import React, { Dispatch, SetStateAction, useEffect, useState } from 'react';
 import {
+  DocumentOutput,
   useDocumentsQuery,
   useDocumentTypesQuery,
   usePersonsQuery,
@@ -23,9 +24,13 @@ import { PersonSettings } from '../components/PersonSettings';
 import { DocumentInfo } from '../components/DocumentInfo';
 import { AdvancedDocSearch } from '../components/AdvancedDocSearch';
 import {
+  DateRange,
+  DocumentTypeDisplay,
+  RecorderDisplay,
   SearchCriterionEntry,
   SearchCriterionType,
   searchCriteriaTypes,
+  KeywordSearchCriterion,
 } from '../searchCriteria';
 
 const useStateWithLocalStorage = (
@@ -42,6 +47,225 @@ const useStateWithLocalStorage = (
   }, [value]);
 
   return [value, setValue];
+};
+
+const displayAdvancedCriteria = (criteria: SearchCriterionEntry[]) => {
+  return (
+    <ul>
+      {criteria.map(({ criterion, value }) => {
+        switch (criterion) {
+          case 'writtenOn': {
+            const startDate = (value as DateRange).start.toLocaleDateString();
+            const endDate = (value as DateRange).end.toLocaleDateString();
+
+            return <li>{`Written from ${startDate} until ${endDate}`}</li>;
+          }
+          case 'sentOn': {
+            const startDate = (value as DateRange).start.toLocaleDateString();
+            const endDate = (value as DateRange).end.toLocaleDateString();
+
+            return <li>{`Sent from ${startDate} until ${endDate}`}</li>;
+          }
+          case 'docType':
+            return (
+              <li>{`Document type: ${(value as DocumentTypeDisplay).name}`}</li>
+            );
+          case 'recorder':
+            return <li>{`Recorded by: ${(value as RecorderDisplay).name}`}</li>;
+          case 'keyword': {
+            let criterionDisplayName = '';
+
+            switch ((value as KeywordSearchCriterion).type) {
+              case 'id':
+                criterionDisplayName = 'ID no.';
+                break;
+              case 'docNumber':
+                criterionDisplayName = 'Document no.';
+                break;
+              case 'subject':
+                criterionDisplayName = 'Subject';
+                break;
+              case 'sender':
+                criterionDisplayName = 'Sender name';
+                break;
+            }
+
+            return (
+              <li>{`${criterionDisplayName}
+               contains ${(value as KeywordSearchCriterion).value}`}</li>
+            );
+          }
+        }
+
+        return null;
+      })}
+    </ul>
+  );
+};
+
+const displayDocuments = (
+  currRecipient: number,
+  documents: DocumentOutput[],
+  searchCriterion: SearchCriterionType,
+  search: string,
+  advancedCriteria: SearchCriterionEntry[],
+  onDblClick: (id: number) => void
+) => {
+  if (!currRecipient) {
+    return (
+      <tr>
+        <td colSpan={6}>
+          <p className="text-center mt-3">
+            Please set up a recipient for looking at their documents.'
+          </p>
+        </td>
+      </tr>
+    );
+  }
+
+  if (documents.length === 0) {
+    return (
+      <tr>
+        <td colSpan={6}>
+          <p className="text-center mt-3">
+            This person has not received any documents yet
+          </p>
+        </td>
+      </tr>
+    );
+  }
+
+  if (advancedCriteria.length > 0) {
+    let finalDocuments: DocumentOutput[] = [...documents];
+
+    advancedCriteria.forEach(({ criterion, value }) => {
+      switch (criterion) {
+        case 'writtenOn': {
+          const startDate = (value as DateRange).start;
+          const endDate = (value as DateRange).end;
+
+          finalDocuments = finalDocuments.filter((doc) => {
+            console.log('Documento:', doc);
+            if (!doc.writtenOn) return false;
+
+            const date = new Date(doc.writtenOn);
+            return date && date >= startDate && date <= endDate;
+          });
+
+          break;
+        }
+        case 'sentOn': {
+          const startDate = (value as DateRange).start;
+          const endDate = (value as DateRange).end;
+
+          finalDocuments = finalDocuments.filter((doc) => {
+            if (!doc.sentOn) return false;
+
+            const date = new Date(doc.sentOn);
+            return date && date >= startDate && date <= endDate;
+          });
+
+          break;
+        }
+        case 'docType': {
+          finalDocuments = finalDocuments.filter((doc) => {
+            return doc.docType.id === (value as DocumentTypeDisplay).id;
+          });
+
+          break;
+        }
+        case 'recorder': {
+          finalDocuments = finalDocuments.filter((doc) => {
+            return doc.recordedBy.id === (value as RecorderDisplay).id;
+          });
+
+          break;
+        }
+        case 'keyword': {
+          finalDocuments = finalDocuments.filter((doc) => {
+            const type = (value as KeywordSearchCriterion).type;
+            const val = (value as KeywordSearchCriterion).value;
+
+            return doc[type]!.toString()
+              .toLocaleLowerCase()
+              .includes(val.toLocaleLowerCase());
+          });
+        }
+      }
+    });
+
+    if (finalDocuments.length === 0) {
+      return (
+        <tr>
+          <td colSpan={6}>
+            <p className="text-center mt-3">No documents were found</p>
+          </td>
+        </tr>
+      );
+    }
+
+    return finalDocuments.map(
+      ({ id, docType, docNumber, subject, writtenOn, sender }) => {
+        console.log(id);
+
+        return (
+          <tr key={id} onDoubleClick={() => onDblClick(id)}>
+            <td>{id}</td>
+            <td>{docType.typeName}</td>
+            <td>{docNumber}</td>
+            <td>{subject}</td>
+            <td>{writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}</td>
+            <td>{sender?.name}</td>
+          </tr>
+        );
+      }
+    );
+  } else {
+    return documents.map((doc) => {
+      const { id, docType, docNumber, subject, writtenOn, sender } = doc;
+
+      if (search.length !== 0) {
+        let searchAttribute: string | undefined | null = '';
+        switch (searchCriterion.criterion) {
+          case 'id':
+            searchAttribute = id.toString();
+            break;
+          case 'docType':
+            searchAttribute = docType!.typeName;
+            break;
+          case 'docNumber':
+            searchAttribute = docNumber;
+            break;
+          case 'subject':
+            searchAttribute = subject;
+            break;
+          case 'sender':
+            searchAttribute = sender?.name;
+            break;
+        }
+
+        if (
+          searchAttribute &&
+          !searchAttribute
+            .toLocaleLowerCase()
+            .includes(search.toLocaleLowerCase())
+        ) {
+          return null;
+        }
+      }
+
+      return (
+        <tr key={id} onDoubleClick={() => onDblClick(id)}>
+          <td>{id}</td>
+          <td>{docType.typeName}</td>
+          <td>{docNumber}</td>
+          <td>{subject}</td>
+          <td>{writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}</td>
+          <td>{sender?.name}</td>
+        </tr>
+      );
+    });
+  }
 };
 
 export const Documents: React.FC = () => {
@@ -79,6 +303,10 @@ export const Documents: React.FC = () => {
   const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
 
   const [currDocument, setCurrDocument] = useState(0);
+
+  useEffect(() => {
+    setAdvancedSearch(advancedCriteria.length > 0);
+  }, [setAdvancedSearch, advancedCriteria]);
 
   if (docLoading || docTypesLoading || perLoading) {
     return <Loading />;
@@ -169,11 +397,11 @@ export const Documents: React.FC = () => {
         {advancedSearch && (
           <Alert
             variant="info"
-            onClose={() => setAdvancedSearch(false)}
+            onClose={() => setAdvancedCriteria([])}
             dismissible
           >
-            Advanced search: <i>criteria</i>
-            <br />
+            Advanced search (documents must satifsfy each and every one of the
+            following conditions): {displayAdvancedCriteria(advancedCriteria)}
             Close this message to clear the search
           </Alert>
         )}
@@ -191,78 +419,16 @@ export const Documents: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {currRecipient && receivedDocuments.length > 0 ? (
-              receivedDocuments.map((doc) => {
-                const {
-                  id,
-                  docType,
-                  docNumber,
-                  subject,
-                  writtenOn,
-                  sender,
-                } = doc;
-
-                if (search.length !== 0) {
-                  let searchAttribute: string | undefined | null = '';
-                  switch (searchCriterion.criterion) {
-                    case 'id':
-                      searchAttribute = id.toString();
-                      break;
-                    case 'docType':
-                      searchAttribute = docType!.typeName;
-                      break;
-                    case 'docNumber':
-                      searchAttribute = docNumber;
-                      break;
-                    case 'subject':
-                      searchAttribute = subject;
-                      break;
-                    case 'sender':
-                      searchAttribute = sender?.name;
-                      break;
-                  }
-
-                  if (
-                    searchAttribute &&
-                    !searchAttribute
-                      .toLocaleLowerCase()
-                      .includes(search.toLocaleLowerCase())
-                  ) {
-                    return null;
-                  }
-                }
-
-                return (
-                  <tr
-                    key={id}
-                    onDoubleClick={() => {
-                      setCurrDocument(id);
-                      setShowInfoDialog(true);
-                    }}
-                  >
-                    <td>{id}</td>
-                    <td>{docType.typeName}</td>
-                    <td>{docNumber}</td>
-                    <td>{subject}</td>
-                    <td>
-                      {writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}
-                    </td>
-                    <td>{sender?.name}</td>
-                  </tr>
-                );
-              })
-            ) : (
-              <tr>
-                <td colSpan={6}>
-                  <p className="text-center mt-3">
-                    {!currRecipient &&
-                      'Please set up a recipient for looking at their documents.'}
-                    {currRecipient &&
-                      receivedDocuments.length === 0 &&
-                      'This person has not received any documents yet'}
-                  </p>
-                </td>
-              </tr>
+            {displayDocuments(
+              currRecipient,
+              receivedDocuments,
+              searchCriterion,
+              search,
+              advancedCriteria,
+              (id) => {
+                setCurrDocument(id);
+                setShowInfoDialog(true);
+              }
             )}
           </tbody>
         </Table>
