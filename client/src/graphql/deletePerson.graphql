@@ -1,0 +1,6 @@
+mutation DeletePerson($id: Int!) {
+  deletePerson(id: $id) {
+    status
+    message
+  }
+}
