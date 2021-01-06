@@ -11,7 +11,7 @@ import { Document } from './Document';
 // import { UserRecordsDocuments } from './UserRecordsDocuments';
 
 @ObjectType()
-@Entity('users')
+@Entity('user')
 @Unique(['email', 'username'])
 export class User extends BaseEntity {
   @Field(() => Int)

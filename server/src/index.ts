@@ -16,6 +16,7 @@ import { DocumentResolver } from './resolvers/DocumentResolver';
 import { AddressResolver } from './resolvers/AddressResolver';
 import { CountryResolver } from './resolvers/CountryResolver';
 import https from 'https';
+import http from 'http';
 import fs from 'fs';
 
 (async () => {
@@ -30,12 +31,12 @@ import fs from 'fs';
 
   app.use(cookieParser());
 
-  app.use(function (req, res, next) {
-    if (!req.secure) {
-      return res.redirect(['https://', req.get('Host'), req.url].join(''));
-    }
-    next();
-  });
+  // app.use(function (req, res, next) {
+  //   if (!req.secure) {
+  //     return res.redirect(['https://', req.get('Host'), req.url].join(''));
+  //   }
+  //   next();
+  // });
 
   app.get('/', (_, res) => res.send("You shouldn't be here, but ok"));
 
@@ -95,7 +96,11 @@ import fs from 'fs';
     app
   );
 
+  const unsafeServer = http.createServer(app);
+
   server.listen({ port: 4000 }, () =>
     console.log('🚀 Server ready at https://192.168.18.108:4000')
   );
+
+  unsafeServer.listen(4001, () => console.log('a'))
 })();

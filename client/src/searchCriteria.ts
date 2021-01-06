@@ -67,15 +67,16 @@ export type KeywordSearchCriterion = {
 
 export type SearchCriterionEntry = {
   criterion:
-    | 'id'
-    | 'docType'
-    | 'docNumber'
-    | 'subject'
-    | 'writtenOn'
-    | 'sentOn'
-    | 'sender'
-    | 'recorder'
-    | 'keyword';
+  | 'id'
+  | 'docType'
+  | 'docNumber'
+  | 'subject'
+  | 'writtenOn'
+  | 'sentOn'
+  | 'sender'
+  | 'recorder'
+  | 'keyword'
+  | 'receivedOn';
   value:
     | DateRange
     | string

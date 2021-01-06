@@ -9,7 +9,7 @@ import { Field, InputType, Int } from 'type-graphql';
 import { PersonResidesAddress } from './PersonResidesAddress';
 
 @InputType('PersonInput')
-@Entity('persons')
+@Entity('person')
 export class Person extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn({ name: 'id' })

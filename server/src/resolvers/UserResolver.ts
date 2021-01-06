@@ -190,12 +190,14 @@ export class UserResolver {
   async register(
     @Arg('email') email: string,
     @Arg('name') name: string,
+    @Arg('username') username: string,
     @Arg('password') password: string
   ): Promise<StatusResponse> {
     userRegistrationSchema
       .validate({
         email,
         name,
+        username,
         password,
       })
       .catch(() => {
@@ -208,7 +210,7 @@ export class UserResolver {
     const hashedPassword = await hash(password, 12);
 
     try {
-      await User.insert({ email, name, password: hashedPassword });
+      await User.insert({ email, username, name, password: hashedPassword, isClerk: true });
     } catch (err) {
       if (err.detail.includes('already exists')) {
         return {

@@ -8,6 +8,7 @@ import * as yup from 'yup';
 
 export const userRegistrationSchema = yup.object({
   email: yup.string().email().max(254).required(),
+  username: yup.string().min(5).max(16).required(),
   name: yup.string().min(5).max(64).required(),
   password: yup.string().min(3).max(64).required(),
   confirmPassword: yup
@@ -32,13 +33,14 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
           <Formik
             initialValues={{
               email: '',
+              username: '',
               name: '',
               password: '',
               confirmPassword: '',
             }}
             validationSchema={userRegistrationSchema}
             onSubmit={async (values, { setSubmitting }) => {
-              const { email, name, password } = values;
+              const { email, username, name, password } = values;
 
               setSubmitting(true);
               setGeneralError('');
@@ -46,6 +48,7 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
               const response = await register({
                 variables: {
                   email,
+                  username,
                   name,
                   password,
                 },
@@ -76,17 +79,28 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
                     name="email"
                     type="email"
                     as={Form.Control}
-                    isInvalid={errors.email}
+                    isInvalid={!!errors.email}
                   />
                   <Form.Control.Feedback type="invalid">
                     {errors.email}
+                  </Form.Control.Feedback>
+                </Form.Group>
+                <Form.Group as={Col} controlId="validationFormikUsername">
+                  <Field
+                    placeholder="Username"
+                    name="username"
+                    as={Form.Control}
+                    isInvalid={!!errors.username}
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    {errors.username}
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group as={Col} controlId="validationFormikName">
                   <Field
                     placeholder="Name"
                     name="name"
-                    isInvalid={errors.name}
+                    isInvalid={!!errors.name}
                     as={Form.Control}
                   />
                   <Form.Control.Feedback type="invalid">
@@ -99,7 +113,7 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
                     name="password"
                     type="password"
                     as={Form.Control}
-                    isInvalid={errors.password}
+                    isInvalid={!!errors.password}
                   />
                   <Form.Control.Feedback type="invalid">
                     {errors.password}
@@ -114,7 +128,7 @@ export const Register: React.FC<RouteComponentProps> = ({ history }) => {
                     name="confirmPassword"
                     type="password"
                     as={Form.Control}
-                    isInvalid={errors.confirmPassword}
+                    isInvalid={!!errors.confirmPassword}
                   />
                   <Form.Control.Feedback type="invalid">
                     {errors.confirmPassword}

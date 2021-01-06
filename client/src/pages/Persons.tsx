@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useCountriesQuery, usePersonsQuery } from '../generated/graphql';
+import { useCountriesQuery, useMeQuery, usePersonsQuery } from '../generated/graphql';
 import { Redirect } from 'react-router-dom';
 import { Container, Form, Table, Col, Row, Button } from 'react-bootstrap';
 import { PersonPlusFill } from 'react-bootstrap-icons';
@@ -46,6 +46,11 @@ export const Persons: React.FC = () => {
     loading: counLoading,
     error: counError,
   } = useCountriesQuery();
+  const {
+    data: meData,
+    loading: meLoading,
+    error: meError,
+  } = useMeQuery();
   const [searchCriterion, setSearchCriterion] = useState<SearchCriterion>(
     searchCriteria[0]
   );
@@ -55,16 +60,16 @@ export const Persons: React.FC = () => {
 
   const [currPerson, setCurrPerson] = useState(0);
 
-  if (perLoading || counLoading) {
+  if (perLoading || counLoading || meLoading) {
     return <Loading />;
   }
 
-  if (perError || counError) {
+  if (perError || counError || meError) {
     console.error(perError);
     return <div>Error</div>;
   }
 
-  if (!perData || !perData.persons || !counData || !counData.countries) {
+  if (!perData || !perData.persons || !counData || !counData.countries || !meData || !meData.me) {
     return <Redirect to="/login" />;
   }
 
@@ -76,9 +81,9 @@ export const Persons: React.FC = () => {
             <div>
               <h2 style={{ display: 'table-cell' }}>Persons</h2>
             </div>
-            <Button className="ml-auto" onClick={() => setShowNewDialog(true)}>
+            {meData.me.user!.isClerk && <Button className="ml-auto" onClick={() => setShowNewDialog(true)}>
               <PersonPlusFill size={24} />
-            </Button>
+            </Button>}
           </Col>
         </Row>
         <Form>
@@ -128,7 +133,7 @@ export const Persons: React.FC = () => {
           </thead>
           <tbody>
             {perData.persons.persons.length > 0 ? (
-              perData.persons.persons.map((person) => {
+              [...perData.persons.persons].sort(({id: a, id: b}) => a - b).map((person) => {
                 if (!person || !person || !person.address) return null;
 
                 const { id, rut, name, division, phone, email } = person;

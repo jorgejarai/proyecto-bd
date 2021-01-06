@@ -11,6 +11,7 @@ import {
   useDeleteDocumentMutation,
   DocumentsDocument,
   DocumentsQuery,
+  useMeQuery,
 } from '../generated/graphql';
 import loadingImage from '../assets/loading.svg';
 import { DeleteDocument } from './DeleteDocument';
@@ -55,14 +56,19 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
     loading: perLoading,
     error: perError,
   } = usePersonNamesQuery();
+  const {
+    data: meData,
+    loading: meLoading,
+    error: meError,
+  } = useMeQuery();
   const [updateDocument, { client }] = useUpdateDocumentMutation();
   const [deleteDocument] = useDeleteDocumentMutation();
 
   const [showDelete, setShowDelete] = useState(false);
 
-  const refQla: any = useRef();
+  const typeaheadRef: any = useRef();
 
-  if (docLoading || docTypesLoading || perLoading) {
+  if (docLoading || docTypesLoading || perLoading || meLoading) {
     return (
       <Modal show={show} onHide={() => setShow(false)}>
         <Modal.Header>
@@ -96,7 +102,11 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
     perError ||
     !perData ||
     !perData.personNames ||
-    perData.personNames.status.status === 'error'
+    perData.personNames.status.status === 'error' ||
+    meError ||
+    !meData ||
+    !meData.me ||
+    meData.me.status.status === 'error'
   ) {
     return (
       <Modal show={show} onHide={() => setShow(false)}>
@@ -120,13 +130,13 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
     docNumber: doc?.docNumber,
     subject: doc?.subject!,
     hasWritingDate: !!doc?.writtenOn,
-    writtenOn: doc?.writtenOn ? new Date(doc.writtenOn) : null,
+    writtenOn: doc?.writtenOn ? new Date(`${doc?.writtenOn} 00:00`) : null,
     sender: doc?.sender?.id!,
     hasSendingDate: !!doc?.sentOn,
-    sentOn: doc?.sentOn ? new Date(doc?.sentOn) : null,
+    sentOn: doc?.sentOn ? new Date(`${doc?.sentOn} 00:00`) : null,
     recipients: doc?.recipients?.map((rec) => ({
       id: rec.person.id,
-      date: new Date(rec.receivedOn),
+      date: new Date(`${rec.receivedOn} 00:00`),
     }))!,
     hasFiles: false,
     files: [],
@@ -140,13 +150,18 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
 
   return (
     <>
-      <Modal show={show} onHide={() => setShow(false)}>
+      <Modal show={show} onHide={() => setShow(false)} size="lg">
         <Modal.Header>
           <Modal.Title>Document No.{` ${docId}`}</Modal.Title>
         </Modal.Header>
         <Formik
           initialValues={initialValues}
           onSubmit={async (values, { setSubmitting }) => {
+            if (!meData.me.user!.isClerk) {
+              setShow(false);
+              return
+            }
+
             const {
               docType,
               docNumber,
@@ -228,11 +243,17 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                       A person cannot send a message to themselves
                     </Alert>
                   )}
+                  {values.recipients.length === 0 && (
+                    <Alert variant="danger">
+                      A document must have at least one recipient
+                    </Alert>
+                  )}
                   <Form.Row>
                     <Form.Group as={Col} xs={7}>
                       <Form.Control
                         as="select"
                         name="docType"
+                        disabled={!meData.me.user!.isClerk}
                         onChange={(event) => {
                           const newDocType = docTypesData.documentTypes.docTypes.find(
                             ({ id }) => '' + id === event.target.value
@@ -258,6 +279,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                       <Field
                         placeholder="Document No."
                         name="docNumber"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         invalid={!!errors.docNumber}
                       />
@@ -271,6 +293,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                       <Field
                         placeholder="Subject"
                         name="subject"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         isInvalid={!!errors.subject}
                       />
@@ -285,6 +308,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                         type="checkbox"
                         as={Form.Check}
                         name="hasWritingDate"
+                        readonly={!meData.me.user!.isClerk}
                         inline
                         label="Written on"
                       />
@@ -292,6 +316,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                     <Form.Group as={Col} xs={3}>
                       <Field
                         name="writtenOn"
+                        readonly={!meData.me.user!.isClerk}
                         as={DatePicker}
                         selected={values.writtenOn}
                         onChange={(date: any) =>
@@ -311,6 +336,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                     <Form.Group as={Col} xs={3}>
                       <Field
                         type="checkbox"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Check}
                         name="hasSendingDate"
                         inline
@@ -320,6 +346,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                     <Form.Group as={Col} xs={3}>
                       <Field
                         name="sentOn"
+                        readonly={!meData.me.user!.isClerk}
                         as={DatePicker}
                         selected={values.sentOn}
                         onChange={(date: any) => setFieldValue('sentOn', date)}
@@ -339,6 +366,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                       <Field
                         placeholder="Sender"
                         id="document-sender"
+                        readonly={!meData.me.user!.isClerk}
                         name="sender"
                         labelKey="label"
                         as={Typeahead}
@@ -375,16 +403,14 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
 
                             if (!personEntry) return null;
 
-                            const year = date.getFullYear();
-                            const month = date.getMonth() + 1;
-                            const day = date.getDate();
-
                             return (
                               <tr key={id}>
                                 <td>{personEntry.label}</td>
-                                <td>{`${day}/${month}/${year}`}</td>
+                                <td>{`${date.toISOString().slice(0, 10)}`}</td>
                                 <td>
                                   <Button
+                                    variant="danger"
+                                    disabled={!meData.me.user!.isClerk}
                                     onClick={() => {
                                       setFieldValue(
                                         'recipients',
@@ -404,7 +430,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                       </Table>
                     </Form.Group>
                   </Form.Row>
-                  <Form.Row>
+                  {meData.me.user!.isClerk && <Form.Row>
                     <Form.Group as={Col} xs={7}>
                       <Typeahead
                         placeholder="Type a new recipient here"
@@ -418,7 +444,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                           setFieldValue('newRecipient', newRecipient);
                         }}
                         clearButton
-                        ref={refQla}
+                        ref={typeaheadRef}
                       />
                     </Form.Group>
                     <Col xs={4}>
@@ -446,13 +472,13 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                               (rec) => rec.id === values.newRecipient
                             )
                           ) {
-                            if (refQla.current) {
-                              refQla.current.clear();
+                            if (typeaheadRef.current) {
+                              typeaheadRef.current.clear();
                             }
                             return;
                           }
 
-                          if (refQla.current) refQla.current.clear();
+                          if (typeaheadRef.current) typeaheadRef.current.clear();
 
                           setFieldValue('recipients', [
                             ...values.recipients,
@@ -466,13 +492,14 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                         +
                       </Button>
                     </Col>
-                  </Form.Row>
+                  </Form.Row>}
                   <Form.Row>
                     <Form.Group as={Col}>
                       <Field
                         type="checkbox"
                         as={Form.Check}
                         name="hasFiles"
+                        readonly={!meData.me.user!.isClerk}
                         label="Were electronic files attached?"
                       />
                     </Form.Group>
@@ -483,6 +510,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                         id="formcheck-api-custom"
                         custom
                         style={{ zIndex: 0 }}
+                        disabled={!meData.me.user!.isClerk}
                       >
                         <Form.File.Input disabled={!values.hasFiles} />
                         <Form.File.Label data-browse="Browse">
@@ -493,14 +521,15 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                   </Form.Row>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button
-                    variant="secondary"
-                    onClick={() => setShow(false)}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
+                  {meData.me.user!.isClerk &&
+                    <Button
+                      variant="secondary"
+                      onClick={() => setShow(false)}
+                      disabled={isSubmitting}
+                    >
+                      Cancel
+                  </Button>}
+                  {meData.me.user!.isClerk && <Button
                     variant="danger"
                     disabled={isSubmitting}
                     onClick={() => {
@@ -509,7 +538,7 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                     }}
                   >
                     {isSubmitting ? 'Hang on...' : 'Delete'}
-                  </Button>
+                  </Button>}
                   <Button
                     variant="primary"
                     disabled={
@@ -517,7 +546,8 @@ export const DocumentInfo: React.FC<Props> = ({ show, setShow, docId }) => {
                       !isValid ||
                       values.recipients.some(
                         (rec: any) => rec.id === values.sender
-                      )
+                      ) ||
+                      values.recipients.length === 0
                     }
                     type="submit"
                   >

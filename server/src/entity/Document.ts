@@ -14,7 +14,7 @@ import { Person } from './Person';
 import { File } from './File';
 
 @ObjectType()
-@Entity('documents')
+@Entity('document')
 export class Document extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn({ name: 'id' })

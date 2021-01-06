@@ -3,6 +3,7 @@ import {
   DocumentOutput,
   useDocumentsQuery,
   useDocumentTypesQuery,
+  useMeQuery,
   usePersonsQuery,
 } from '../generated/graphql';
 import { Redirect } from 'react-router-dom';
@@ -65,6 +66,12 @@ const displayAdvancedCriteria = (criteria: SearchCriterionEntry[]) => {
             const endDate = (value as DateRange).end.toLocaleDateString();
 
             return <li>{`Sent from ${startDate} until ${endDate}`}</li>;
+          }
+          case 'receivedOn': {
+            const startDate = (value as DateRange).start.toLocaleDateString();
+            const endDate = (value as DateRange).end.toLocaleDateString();
+
+            return <li>{`Received from ${startDate} until ${endDate}`}</li>;
           }
           case 'docType':
             return (
@@ -141,11 +148,10 @@ const displayDocuments = (
     advancedCriteria.forEach(({ criterion, value }) => {
       switch (criterion) {
         case 'writtenOn': {
-          const startDate = (value as DateRange).start;
-          const endDate = (value as DateRange).end;
+          const startDate = new Date((value as DateRange).start.setHours(0,0,0,0));
+          const endDate = new Date((value as DateRange).end.setHours(23,59,59,999));
 
           finalDocuments = finalDocuments.filter((doc) => {
-            console.log('Documento:', doc);
             if (!doc.writtenOn) return false;
 
             const date = new Date(doc.writtenOn);
@@ -155,13 +161,28 @@ const displayDocuments = (
           break;
         }
         case 'sentOn': {
-          const startDate = (value as DateRange).start;
-          const endDate = (value as DateRange).end;
+          const startDate = new Date((value as DateRange).start.setHours(0,0,0,0));
+          const endDate = new Date((value as DateRange).end.setHours(23,59,59,999));
 
           finalDocuments = finalDocuments.filter((doc) => {
             if (!doc.sentOn) return false;
 
             const date = new Date(doc.sentOn);
+            return date && date >= startDate && date <= endDate;
+          });
+
+          break;
+        }
+        case 'receivedOn': {
+          const startDate = new Date((value as DateRange).start.setHours(0,0,0,0));
+          const endDate = new Date((value as DateRange).end.setHours(23,59,59,999));
+
+          finalDocuments = finalDocuments.filter((doc) => {
+            const receivedOn = doc.recipients!.find((rec) => rec.person.id === currRecipient)?.receivedOn!
+
+            const date = new Date(`${receivedOn} 00:00`);
+
+            console.log(startDate, date, endDate)
             return date && date >= startDate && date <= endDate;
           });
 
@@ -204,24 +225,20 @@ const displayDocuments = (
       );
     }
 
-    return finalDocuments.map(
-      ({ id, docType, docNumber, subject, writtenOn, sender }) => {
-        console.log(id);
-
-        return (
+    return [...finalDocuments].sort(({id: a}, {id: b}) => a - b).map
+      (({ id, docType, docNumber, subject, writtenOn, sender }) => (
           <tr key={id} onDoubleClick={() => onDblClick(id)}>
             <td>{id}</td>
             <td>{docType.typeName}</td>
             <td>{docNumber}</td>
             <td>{subject}</td>
-            <td>{writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}</td>
+            <td>{writtenOn ? new Date(writtenOn).toISOString().slice(0, 10) : 'n/a'}</td>
             <td>{sender?.name}</td>
           </tr>
-        );
-      }
-    );
+        )
+    )
   } else {
-    return documents.map((doc) => {
+    return [...documents].sort(({id: a}, {id: b}) => a - b).map((doc) => {
       const { id, docType, docNumber, subject, writtenOn, sender } = doc;
 
       if (search.length !== 0) {
@@ -260,7 +277,7 @@ const displayDocuments = (
           <td>{docType.typeName}</td>
           <td>{docNumber}</td>
           <td>{subject}</td>
-          <td>{writtenOn ? new Date(writtenOn).toDateString() : 'n/a'}</td>
+          <td>{writtenOn ? new Date(writtenOn).toISOString().slice(0, 10) : 'n/a'}</td>
           <td>{sender?.name}</td>
         </tr>
       );
@@ -284,6 +301,11 @@ export const Documents: React.FC = () => {
     loading: docTypesLoading,
     error: docTypesError,
   } = useDocumentTypesQuery();
+  const {
+    data: meData,
+    loading: meLoading,
+    error: meError,
+  } = useMeQuery();
 
   const [searchCriterion, setSearchCriterion] = useState<SearchCriterionType>(
     searchCriteriaTypes[0]
@@ -308,12 +330,11 @@ export const Documents: React.FC = () => {
     setAdvancedSearch(advancedCriteria.length > 0);
   }, [setAdvancedSearch, advancedCriteria]);
 
-  if (docLoading || docTypesLoading || perLoading) {
+  if (docLoading || docTypesLoading || perLoading || meLoading) {
     return <Loading />;
   }
 
-  if (docError || docTypesError || perError) {
-    console.log(docError);
+  if (docError || docTypesError || perError || meError) {
     return <div>Error</div>;
   }
 
@@ -323,7 +344,9 @@ export const Documents: React.FC = () => {
     !docTypesData ||
     !docTypesData.documentTypes ||
     !perData ||
-    !perData.persons
+    !perData.persons ||
+    !meData ||
+    !meData.me
   ) {
     return <Redirect to="/login" />;
   }
@@ -347,9 +370,9 @@ export const Documents: React.FC = () => {
             >
               <Sliders size={24} />
             </Button>
-            <Button className="ml-2" onClick={() => setShowNewDialog(true)}>
+            {meData.me.user?.isClerk && <Button className="ml-2" onClick={() => setShowNewDialog(true)}>
               <FileEarmarkPlusFill size={24} />
-            </Button>
+            </Button>}
           </Col>
         </Row>
         <Form>

@@ -12,7 +12,7 @@ import { Country } from './Country';
 import { PersonResidesAddress } from './PersonResidesAddress';
 
 @ObjectType()
-@Entity('addresses')
+@Entity('address')
 export class Address extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn({ name: 'id' })

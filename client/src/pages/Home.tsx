@@ -35,14 +35,16 @@ export const Home: React.FC<Props> = () => {
         <thead>
           <tr>
             <th>No.</th>
+            <th>Username</th>
             <th>Name</th>
             <th>Email</th>
           </tr>
         </thead>
         <tbody>
-          {data.users.users.map(({ id, name, email }) => (
+          {[...data.users.users].sort(({id: a}, {id: b}) => a - b).map(({ id, username, name, email }) => (
             <tr>
               <td>{id}</td>
+              <td>{username}</td>
               <td>{name}</td>
               <td>{email}</td>
             </tr>

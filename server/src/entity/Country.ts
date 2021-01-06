@@ -10,7 +10,7 @@ import { ObjectType, Field, Int } from 'type-graphql';
 import { Address } from './Address';
 
 @ObjectType()
-@Entity('countries')
+@Entity('country')
 @Unique(['countryNumber'])
 export class Country extends BaseEntity {
   @Field(() => Int)

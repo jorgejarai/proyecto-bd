@@ -12,7 +12,7 @@ import { ObjectType, Field, Int } from 'type-graphql';
 import { Document } from './Document';
 
 @ObjectType()
-@Entity('files')
+@Entity('file')
 export class File extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn({ name: 'id' })

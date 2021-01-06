@@ -7,9 +7,10 @@ import {
   useUpdatePersonMutation,
   useUpdatePersonAndAddressMutation,
   useDeletePersonMutation,
-  PersonResponse,
   PersonDocument,
   PersonQuery,
+  PersonOutput,
+  useMeQuery,
 } from '../generated/graphql';
 import { Button, Col, Form, Modal, Row } from 'react-bootstrap';
 import { Formik, Form as FormikForm, Field } from 'formik';
@@ -42,6 +43,11 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
     error: couError,
   } = useCountriesQuery();
   const {
+    data: meData,
+    loading: meLoading,
+    error: meError,
+  } = useMeQuery();
+  const {
     data: perData,
     loading: perLoading,
     error: perError,
@@ -56,7 +62,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
 
   const [showDelete, setShowDelete] = useState(false);
 
-  if (couLoading || perLoading) {
+  if (couLoading || perLoading || meLoading) {
     return (
       <Modal show={show} onHide={() => setShow(false)}>
         <Modal.Header>
@@ -86,7 +92,10 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
     !perData ||
     !perData.person ||
     !perData.person.person ||
-    !perData.person.person.address
+    !perData.person.person.address ||
+    meError ||
+    !meData ||
+    !meData.me
   ) {
     console.log(couError, perError, perData);
     return (
@@ -132,6 +141,11 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
         <Formik
           initialValues={initialValues}
           onSubmit={async (values, { setSubmitting }) => {
+            if (!meData.me.user!.isClerk) {
+              setShow(false);
+              return
+            }
+
             const {
               name,
               rut,
@@ -171,9 +185,9 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                   const cachedPersons: any = cache.readQuery({
                     query: PersonsDocument,
                   });
-                  const personsList = cachedPersons.persons.map(
-                    (per: PersonResponse) => {
-                      if (per.person?.id !== perId) {
+                  const personsList = cachedPersons.persons.persons.map(
+                    (per: PersonOutput) => {
+                      if (per.id !== perId) {
                         return per;
                       }
 
@@ -238,9 +252,9 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                   const cachedPersons: any = cache.readQuery({
                     query: PersonsDocument,
                   });
-                  let personsList = cachedPersons.persons.map(
-                    (per: PersonResponse) => {
-                      if (per.person?.id !== perId) {
+                  let personsList = cachedPersons.persons.persons.map(
+                    (per: PersonOutput) => {
+                      if (per.id !== perId) {
                         return per;
                       }
 
@@ -301,6 +315,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="RUT"
                         name="rut"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         validate={validateRut}
                         isInvalid={!!errors.rut}
@@ -315,6 +330,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="Name"
                         name="name"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         isInvalid={!!errors.name}
                       />
@@ -328,6 +344,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="Division"
                         name="division"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         isInvalid={!!errors.division}
                       />
@@ -339,6 +356,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="Postal code"
                         name="postalCode"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         isInvalid={!!errors.postalCode}
                       />
@@ -352,6 +370,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="Address"
                         name="address"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         isInvalid={!!errors.address}
                       />
@@ -363,6 +382,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Form.Control
                         as="select"
                         name="country"
+                        disabled={!meData.me.user!!.isClerk}
                         onChange={(event) => {
                           const newCountry = couData.countries.countries.find(
                             ({ countryNumber }) =>
@@ -404,6 +424,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="Email"
                         name="email"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         isInvalid={!!errors.email}
                       />
@@ -415,6 +436,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                       <Field
                         placeholder="Phone"
                         name="phone"
+                        readonly={!meData.me.user!.isClerk}
                         as={Form.Control}
                         type="tel"
                       />
@@ -428,7 +450,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                   <Button variant="secondary" onClick={() => setShow(false)}>
                     Cancel
                   </Button>
-                  <Button
+                  {meData.me.user!.isClerk && <Button
                     variant="danger"
                     disabled={isSubmitting}
                     onClick={() => {
@@ -437,7 +459,7 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
                     }}
                   >
                     {isSubmitting ? 'Hang on...' : 'Delete'}
-                  </Button>
+                  </Button>}
                   <Button
                     variant="primary"
                     type="submit"
@@ -464,8 +486,8 @@ export const PersonInfo: React.FC<Props> = ({ show, setShow, perId }) => {
               const cachedPersons: any = cache.readQuery({
                 query: PersonsDocument,
               });
-              const modifiedPersons = cachedPersons.persons.filter(
-                (doc: any) => doc.person.id !== perId
+              const modifiedPersons = cachedPersons.persons.persons.filter(
+                (per: any) => per.id !== perId
               );
 
               cache.writeQuery<PersonsQuery>({

@@ -196,6 +196,7 @@ export type MutationLoginArgs = {
 
 export type MutationRegisterArgs = {
   password: Scalars['String'];
+  username: Scalars['String'];
   name: Scalars['String'];
   email: Scalars['String'];
 };
@@ -661,6 +662,7 @@ export type PersonsQuery = (
 
 export type RegisterMutationVariables = Exact<{
   email: Scalars['String'];
+  username: Scalars['String'];
   name: Scalars['String'];
   password: Scalars['String'];
 }>;
@@ -776,7 +778,7 @@ export type UsersQuery = (
       & Pick<StatusResponse, 'status' | 'message'>
     ), users: Array<(
       { __typename?: 'User' }
-      & Pick<User, 'id' | 'name' | 'email'>
+      & Pick<User, 'id' | 'username' | 'name' | 'email'>
     )> }
   ) }
 );
@@ -1560,8 +1562,8 @@ export type PersonsQueryHookResult = ReturnType<typeof usePersonsQuery>;
 export type PersonsLazyQueryHookResult = ReturnType<typeof usePersonsLazyQuery>;
 export type PersonsQueryResult = Apollo.QueryResult<PersonsQuery, PersonsQueryVariables>;
 export const RegisterDocument = gql`
-    mutation Register($email: String!, $name: String!, $password: String!) {
-  register(email: $email, name: $name, password: $password) {
+    mutation Register($email: String!, $username: String!, $name: String!, $password: String!) {
+  register(email: $email, username: $username, name: $name, password: $password) {
     status
     message
   }
@@ -1583,6 +1585,7 @@ export type RegisterMutationFn = Apollo.MutationFunction<RegisterMutation, Regis
  * const [registerMutation, { data, loading, error }] = useRegisterMutation({
  *   variables: {
  *      email: // value for 'email'
+ *      username: // value for 'username'
  *      name: // value for 'name'
  *      password: // value for 'password'
  *   },
@@ -1783,6 +1786,7 @@ export const UsersDocument = gql`
     }
     users {
       id
+      username
       name
       email
     }

@@ -9,7 +9,7 @@ import { ObjectType, Field, Int } from 'type-graphql';
 import { Document } from './Document';
 
 @ObjectType()
-@Entity('document_types')
+@Entity('document_type')
 export class DocumentType extends BaseEntity {
   @Field(() => Int)
   @PrimaryGeneratedColumn({ name: 'id' })

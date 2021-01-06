@@ -2,12 +2,14 @@ import * as yup from 'yup';
 
 export const userRegistrationSchema = yup.object({
   email: yup.string().email().max(254).required(),
+  username: yup.string().min(5).max(16).required(),
   name: yup.string().min(5).max(64).required(),
   password: yup.string().min(3).max(64).required(),
 });
 
 export const userLoginSchema = yup.object({
   email: yup.string().email().max(254).required(),
+  username: yup.string().min(5).max(16).required(),
   name: yup.string().min(5).max(64).required(),
   password: yup.string().min(3).max(64).required(),
 });

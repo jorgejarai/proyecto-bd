@@ -82,8 +82,6 @@ export const AdvancedDocSearch: React.FC<Props> = ({
     );
   }
 
-  console.log(docTypesData.documentTypes.docTypes);
-
   return (
     <Modal show={show} onHide={() => setShow(false)} size="lg">
       <Modal.Header>
@@ -97,6 +95,9 @@ export const AdvancedDocSearch: React.FC<Props> = ({
           sentOn: false,
           sentOnStart: new Date(),
           sentOnEnd: new Date(),
+          receivedOn: false,
+          receivedOnStart: new Date(),
+          receivedOnEnd: new Date(),
           docType: false,
           docTypeValue: {
             id: 7,
@@ -138,6 +139,16 @@ export const AdvancedDocSearch: React.FC<Props> = ({
             });
           }
 
+          if (values.receivedOn) {
+            criteria.push({
+              criterion: 'receivedOn',
+              value: {
+                start: values.receivedOnStart,
+                end: values.receivedOnEnd,
+              },
+            });
+          }
+
           if (values.docType) {
             criteria.push({
               criterion: 'docType',
@@ -158,8 +169,6 @@ export const AdvancedDocSearch: React.FC<Props> = ({
               value: values.keywordValue as KeywordSearchCriterion,
             });
           }
-
-          console.log(criteria);
 
           setCriterion([...criteria]);
 
@@ -261,6 +270,53 @@ export const AdvancedDocSearch: React.FC<Props> = ({
                         startDate={values.sentOnStart}
                         endDate={values.sentOnEnd}
                         minDate={values.sentOnStart}
+                      />
+                    </Col>
+                  </Form.Row>
+                </Form.Group>
+                <Form.Group>
+                  <Form.Row>
+                    <Field
+                      type="checkbox"
+                      as={Form.Check}
+                      aria-label="Receiving date"
+                      name="receivedOn"
+                    />
+                    <Form.Label column xs={2}>
+                      Received from:
+                    </Form.Label>
+                    <Col xs={2}>
+                      <Field
+                        name="receivedOnStart"
+                        as={DatePicker}
+                        selected={values.receivedOnStart}
+                        onChange={(date: any) =>
+                          setFieldValue('receivedOnStart', date)
+                        }
+                        className="rbt-input-main form-control rbt-input"
+                        disabled={!values.receivedOn}
+                        selectsStart
+                        startDate={values.receivedOnStart}
+                        endDate={values.receivedOnEnd}
+                      />
+                    </Col>
+                    <Form.Label column xs={1}>
+                      until:
+                    </Form.Label>
+                    <Col xs={2}>
+                      <Field
+                        name="receivedOnStop"
+                        as={DatePicker}
+                        selected={values.receivedOnEnd}
+                        onChange={(date: any) =>
+                          setFieldValue('receivedOnEnd', date)
+                        }
+                        className="rbt-input-main form-control rbt-input"
+                        disabled={!values.receivedOn}
+                        selectsEnd
+                        startDate={values.receivedOnStart}
+                        endDate={values.receivedOnEnd}
+                        minDate={values.receivedOnStart}
                       />
                     </Col>
                   </Form.Row>

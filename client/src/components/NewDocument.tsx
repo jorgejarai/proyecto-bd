@@ -115,7 +115,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
   };
 
   return (
-    <Modal show={show} onHide={() => setShow(false)}>
+    <Modal show={show} onHide={() => setShow(false)} size="lg">
       <Modal.Header closeButton>
         <Modal.Title>New Document</Modal.Title>
       </Modal.Header>
@@ -139,7 +139,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
           const recipientsParam = recipients.map((recipient) => {
             return {
               person: recipient.id,
-              receivedOn: new Date(),
+              receivedOn: recipient.date
             };
           });
 
@@ -177,9 +177,7 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                     },
                     documents: [
                       ...documents.documents.documents,
-                      {
-                        document: newDocument.document,
-                      },
+                      newDocument.document,
                     ],
                   },
                 },
@@ -207,6 +205,11 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                 ) && (
                   <Alert variant="danger">
                     A person cannot send a message to themselves
+                  </Alert>
+                )}
+                {values.recipients.length === 0 && (
+                  <Alert variant="danger">
+                    A document must have at least one recipient
                   </Alert>
                 )}
                 <Form.Row>
@@ -341,18 +344,13 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
 
                           if (!personEntry) return null;
 
-                          const year = date.getFullYear();
-                          const month = date.getMonth() + 1;
-                          const day = date.getDate();
-
-                          console.log(personEntry.label);
-
                           return (
                             <tr key={id}>
                               <td>{personEntry.label}</td>
-                              <td>{`${day}/${month}/${year}`}</td>
+                                <td>{`${date.toISOString().slice(0, 10)}`}</td>
                               <td>
                                 <Button
+                                  variant="danger"
                                   onClick={() => {
                                     setFieldValue(
                                       'recipients',
@@ -475,7 +473,8 @@ export const NewDocument: React.FC<Props> = ({ show, setShow }) => {
                     !isValid ||
                     values.recipients.some(
                       (rec: any) => rec.id === values.sender
-                    )
+                    ) ||
+                    values.recipients.length === 0
                   }
                   type="submit"
                 >

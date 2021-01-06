@@ -1,5 +1,15 @@
-mutation Register($email: String!, $name: String!, $password: String!) {
-  register(email: $email, name: $name, password: $password) {
+mutation Register(
+  $email: String!
+  $username: String!
+  $name: String!
+  $password: String!
+) {
+  register(
+    email: $email
+    username: $username
+    name: $name
+    password: $password
+  ) {
     status
     message
   }
